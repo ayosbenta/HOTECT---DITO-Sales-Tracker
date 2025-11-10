@@ -156,6 +156,12 @@ const Login = ({ onLogin, agents }) => {
             return;
         }
 
+        // Prevent login as Jackie - Personal
+        if (username.toLowerCase() === 'jackie - personal') {
+            setError('Invalid username or password.');
+            return;
+        }
+
         const agentExists = agents.find(agent => agent.toLowerCase() === username.toLowerCase());
         if (agentExists && password === `${agentExists}123`) {
             onLogin({ name: agentExists, role: 'agent' });
@@ -448,6 +454,10 @@ const Overview = ({ subscribers, expenses, agents, currentUser }) => {
 
     const visibleSubscribers = useMemo(() => {
         if (currentUser.role === 'agent') {
+            // When logged in as Jackie - Boosting, show data for both Boosting and Personal.
+            if (currentUser.name === 'Jackie - Boosting') {
+                return subscribers.filter(sub => sub.agent === 'Jackie - Boosting' || sub.agent === 'Jackie - Personal');
+            }
             return subscribers.filter(sub => sub.agent === currentUser.name);
         }
         return subscribers;
@@ -1002,6 +1012,10 @@ const Subscribers = ({ subscribers, onSave, onDelete, agents, currentUser }) => 
     
     const visibleSubscribers = useMemo(() => {
         if (currentUser.role === 'agent') {
+            // When logged in as Jackie - Boosting, show data for both Boosting and Personal.
+            if (currentUser.name === 'Jackie - Boosting') {
+                return subscribers.filter(sub => sub.agent === 'Jackie - Boosting' || sub.agent === 'Jackie - Personal');
+            }
             return subscribers.filter(sub => sub.agent === currentUser.name);
         }
         return subscribers;
@@ -1126,7 +1140,17 @@ const MyPerformance = ({ subscribers, currentUser }) => {
 
     const performanceData = useMemo(() => {
         const agentSubs = subscribers.filter(sub => {
-            if (!sub.dateOfApplication || sub.agent !== currentUser.name) return false;
+            if (!sub.dateOfApplication) return false;
+            
+            // When logged in as Jackie - Boosting, match both Boosting and Personal.
+            let matchesAgent = false;
+            if (currentUser.name === 'Jackie - Boosting') {
+                matchesAgent = sub.agent === 'Jackie - Boosting' || sub.agent === 'Jackie - Personal';
+            } else {
+                matchesAgent = sub.agent === currentUser.name;
+            }
+            if (!matchesAgent) return false;
+
             const appDate = new Date(sub.dateOfApplication);
             return appDate.getFullYear() === selectedYear && (appDate.getMonth() + 1) === selectedMonth;
         });
@@ -1339,7 +1363,19 @@ const PayoutReports = ({ subscribers, agents, currentUser, onSaveSubscriber }) =
             const activationDate = new Date(sub.activationDate);
             // UPDATED: Treat 'Installed' and 'Delivered' as successful.
             const isSuccessful = ['Installed', 'Delivered'].includes(sub.status);
-            const matchesAgent = currentUser.role === 'admin' ? (selectedAgent === 'All' || sub.agent === selectedAgent) : sub.agent === currentUser.name;
+            
+            let matchesAgent;
+            if (currentUser.role === 'admin') {
+                matchesAgent = (selectedAgent === 'All' || sub.agent === selectedAgent);
+            } else { // Agent role
+                // When logged in as Jackie - Boosting, match both Boosting and Personal.
+                if (currentUser.name === 'Jackie - Boosting') {
+                    matchesAgent = sub.agent === 'Jackie - Boosting' || sub.agent === 'Jackie - Personal';
+                } else {
+                    matchesAgent = sub.agent === currentUser.name;
+                }
+            }
+            
             const matchesDate = activationDate.getFullYear() === selectedYear && (activationDate.getMonth() + 1) === selectedMonth;
             
             return isSuccessful && matchesAgent && matchesDate;
