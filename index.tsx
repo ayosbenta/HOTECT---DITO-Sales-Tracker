@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 
@@ -461,9 +462,11 @@ const Overview = ({ subscribers, expenses, agents, currentUser }) => {
             .reduce((sum, sub) => sum + calculateCommission(sub), 0);
 
         const totalAgentCommissions = installedDeliveredSubs.reduce((sum, sub) => sum + calculateCommission(sub), 0);
-        const grossIncome = installedDeliveredSubs.reduce((sum, sub) => sum + getPlanPrice(sub.plan), 0);
+        // UPDATED: Gross income is now a flat 1200 per installed/delivered subscriber.
+        const grossIncome = totalInstalledDelivered * 1200;
         const totalExpenses = expensesInDateRange.reduce((sum, exp) => sum + (exp.amount || 0), 0);
         const totalAdminCommissions = grossIncome - totalAgentCommissions;
+        // UPDATED: Net profit definition is now Admin Commission - Expenses.
         const netProfit = totalAdminCommissions - totalExpenses;
 
         const agentSalesData = agents.map(agentName => {
@@ -760,7 +763,7 @@ const Overview = ({ subscribers, expenses, agents, currentUser }) => {
                         </div>
                         <div className="overview-stat-card">
                             <div className="stat-value">₱{adminDashboardData.totalAdminCommissions.toLocaleString()}</div>
-                            <div className="stat-label">Total Admin Commissions</div>
+                            <div className="stat-label">Admin Commission</div>
                         </div>
                         <div className="overview-stat-card">
                             <div className="stat-value">{adminDashboardData.topAgent.name}</div>
