@@ -457,16 +457,15 @@ const Overview = ({ subscribers, expenses, agents, currentUser }) => {
         const totalApplications = subsInDateRangeByAppDate.length;
         const totalInstalledDelivered = installedDeliveredSubs.length;
 
+        // UPDATED: This now calculates the gross income (1200) for each requested payout, not the agent's commission.
         const commissionOnRequest = installedDeliveredSubs
             .filter(sub => sub.payoutStatus === 'ON REQUEST')
-            .reduce((sum, sub) => sum + calculateCommission(sub), 0);
+            .reduce((sum, sub) => sum + 1200, 0);
 
         const totalAgentCommissions = installedDeliveredSubs.reduce((sum, sub) => sum + calculateCommission(sub), 0);
-        // UPDATED: Gross income is now a flat 1200 per installed/delivered subscriber.
         const grossIncome = totalInstalledDelivered * 1200;
         const totalExpenses = expensesInDateRange.reduce((sum, exp) => sum + (exp.amount || 0), 0);
         const totalAdminCommissions = grossIncome - totalAgentCommissions;
-        // UPDATED: Net profit definition is now Admin Commission - Expenses.
         const netProfit = totalAdminCommissions - totalExpenses;
 
         const agentSalesData = agents.map(agentName => {
