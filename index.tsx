@@ -14,8 +14,9 @@ const residentialPlans = [
 ];
 
 // FIX: Aligned with Google Sheet data validation rules to prevent save errors.
+// ADDED: "On the Way" status.
 const subscriberStatuses = [
-    'Under Review', 'For Scheduling', 'Ready for Installation', 'APPROVED', 'Installed', 
+    'Under Review', 'For Scheduling', 'Ready for Installation', 'On the Way', 'APPROVED', 'Installed', 
     'Reschedule', 'POB', 'Canceled', 'Rejected', 'No Signal', 'Unable to Reach', 'Delivered'
 ];
 
@@ -97,11 +98,12 @@ const payoutStatusBadgeStyle = (status) => ({
 });
 
 // FIX: Updated badge styles to reflect valid statuses only.
+// ADDED: Style for "On the Way".
 const statusBadgeStyle = (status) => ({
     backgroundColor:
         ['Installed', 'APPROVED', 'Delivered'].includes(status) ? 'var(--accent-green)' :
         ['Under Review', 'Reschedule'].includes(status) ? 'var(--accent-yellow)' :
-        ['For Scheduling', 'Ready for Installation'].includes(status) ? 'var(--accent-blue)' :
+        ['For Scheduling', 'Ready for Installation', 'On the Way'].includes(status) ? 'var(--accent-blue)' :
         ['Canceled', 'Rejected'].includes(status) ? 'var(--accent-red)' :
         ['POB', 'No Signal', 'Unable to Reach'].includes(status) ? 'var(--accent-gray)' :
         '#6c757d',
@@ -463,10 +465,11 @@ const Overview = ({ subscribers, expenses, overviewPerformance, currentUser }) =
         const currentYear = new Date().getFullYear();
 
         // For "Total Installed" this month
+        // UPDATED: Treat 'Installed' and 'Delivered' as successful.
         const installedThisMonth = visibleSubscribers.filter(sub => {
             if (!sub.activationDate) return false;
             const activationDate = new Date(sub.activationDate);
-            return sub.status === 'Installed' &&
+            return ['Installed', 'Delivered'].includes(sub.status) &&
                    activationDate.getFullYear() === currentYear &&
                    activationDate.getMonth() === currentMonth;
         });
@@ -478,12 +481,14 @@ const Overview = ({ subscribers, expenses, overviewPerformance, currentUser }) =
             const appDate = new Date(sub.dateOfApplication);
             return appDate.getFullYear() === currentYear && appDate.getMonth() === currentMonth;
         });
-        const installedFromThisMonthApps = applicationsThisMonth.filter(sub => sub.status === 'Installed').length;
+        // UPDATED: Treat 'Installed' and 'Delivered' as successful.
+        const installedFromThisMonthApps = applicationsThisMonth.filter(sub => ['Installed', 'Delivered'].includes(sub.status)).length;
         const totalApplications = applicationsThisMonth.length;
         const conversionRate = totalApplications > 0 ? (installedFromThisMonthApps / totalApplications) * 100 : 0;
 
-        // For Payout stats (all-time for agent, but only for installed subs)
-        const installedSubscribers = visibleSubscribers.filter(sub => sub.status === 'Installed');
+        // For Payout stats (all-time for agent, but only for installed/delivered subs)
+        // UPDATED: Treat 'Installed' and 'Delivered' as successful.
+        const installedSubscribers = visibleSubscribers.filter(sub => ['Installed', 'Delivered'].includes(sub.status));
         const pendingPayouts = installedSubscribers.filter(sub => (sub.payoutStatus || 'PENDING') === 'PENDING').length;
         const onRequestPayouts = installedSubscribers.filter(sub => sub.payoutStatus === 'ON REQUEST').length;
         
@@ -512,10 +517,11 @@ const Overview = ({ subscribers, expenses, overviewPerformance, currentUser }) =
                 const month = date.getMonth();
                 const year = date.getFullYear();
                 
+                // UPDATED: Treat 'Installed' and 'Delivered' as successful for commission calculation.
                 const monthlyCommissions = visibleSubscribers
                     .filter(s => {
                         const actDate = parseDate(s.activationDate);
-                        return s.status === 'Installed' && actDate && actDate.getMonth() === month && actDate.getFullYear() === year;
+                        return ['Installed', 'Delivered'].includes(s.status) && actDate && actDate.getMonth() === month && actDate.getFullYear() === year;
                     })
                     .reduce((sum, s) => sum + calculateCommission(s), 0);
                 
@@ -540,10 +546,11 @@ const Overview = ({ subscribers, expenses, overviewPerformance, currentUser }) =
                 weekEndDate.setDate(weekEndDate.getDate() + 6);
                 weekEndDate.setHours(23, 59, 59, 999);
 
+                // UPDATED: Treat 'Installed' and 'Delivered' as successful for commission calculation.
                 const weeklyCommissions = visibleSubscribers
                     .filter(s => {
                         const actDate = parseDate(s.activationDate);
-                        return s.status === 'Installed' && actDate && actDate >= weekStartDate && actDate <= weekEndDate;
+                        return ['Installed', 'Delivered'].includes(s.status) && actDate && actDate >= weekStartDate && actDate <= weekEndDate;
                     })
                     .reduce((sum, s) => sum + calculateCommission(s), 0);
                 
@@ -566,8 +573,9 @@ const Overview = ({ subscribers, expenses, overviewPerformance, currentUser }) =
                 date.setHours(0,0,0,0);
                 const yyyymmdd = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
                 
+                // UPDATED: Treat 'Installed' and 'Delivered' as successful for commission calculation.
                 const dailyCommissions = visibleSubscribers
-                    .filter(s => s.status === 'Installed' && s.activationDate === yyyymmdd)
+                    .filter(s => ['Installed', 'Delivered'].includes(s.status) && s.activationDate === yyyymmdd)
                     .reduce((sum, s) => sum + calculateCommission(s), 0);
                 
                 data.labels.push(`${date.getMonth()+1}/${date.getDate()}`);
@@ -800,8 +808,11 @@ const SubscriberModal = ({ isOpen, onClose, onSave, subscriber, agents, currentU
         setFormData(prev => {
             const newState = { ...prev, [name]: value };
 
-            if (name === 'status' && value === 'Installed') {
-                newState.activationDate = new Date().toISOString().split('T')[0];
+            if (name === 'status' && ['Installed', 'Delivered'].includes(value)) {
+                // Set activation date only if it's not already set
+                if (!prev.activationDate) {
+                    newState.activationDate = new Date().toISOString().split('T')[0];
+                }
             }
             
             if (name === 'status' && value !== 'Canceled' && value !== 'Rejected') {
@@ -856,7 +867,17 @@ const SubscriberModal = ({ isOpen, onClose, onSave, subscriber, agents, currentU
                     </div>
                     <div className="form-group">
                         <label htmlFor="payoutStatus">Payout Status</label>
-                        <select id="payoutStatus" name="payoutStatus" className="form-control" value={formData.payoutStatus} onChange={handleChange} required>
+                        {/* UPDATED: Payout status is disabled for agents OR if subscriber status is not Installed/Delivered */}
+                        <select 
+                            id="payoutStatus" 
+                            name="payoutStatus" 
+                            className="form-control" 
+                            value={formData.payoutStatus} 
+                            onChange={handleChange} 
+                            required
+                            disabled={currentUser.role === 'agent' || !['Installed', 'Delivered'].includes(formData.status)}
+                            aria-disabled={currentUser.role === 'agent' || !['Installed', 'Delivered'].includes(formData.status)}
+                        >
                              {payoutStatuses.map(status => <option key={status} value={status}>{status}</option>)}
                         </select>
                     </div>
@@ -1007,13 +1028,15 @@ const MyPerformance = ({ subscribers, currentUser }) => {
         });
 
         const totalApplications = agentSubs.length;
-        const installedSales = agentSubs.filter(sub => sub.status === 'Installed').length;
+        // UPDATED: Treat 'Installed' and 'Delivered' as successful.
+        const installedSales = agentSubs.filter(sub => ['Installed', 'Delivered'].includes(sub.status)).length;
         // FIX: Updated to only include valid statuses
-        const pending = agentSubs.filter(sub => ['Under Review', 'For Scheduling', 'Ready for Installation', 'APPROVED'].includes(sub.status)).length;
+        const pending = agentSubs.filter(sub => ['Under Review', 'For Scheduling', 'Ready for Installation', 'APPROVED', 'On the Way'].includes(sub.status)).length;
         const cancelledOrRejected = agentSubs.filter(sub => ['Canceled', 'Rejected'].includes(sub.status)).length;
         
+        // UPDATED: Treat 'Installed' and 'Delivered' as successful for commission calculation.
         const totalCommission = agentSubs
-            .filter(sub => sub.status === 'Installed')
+            .filter(sub => ['Installed', 'Delivered'].includes(sub.status))
             .reduce((sum, sub) => sum + calculateCommission(sub), 0);
         
         const conversionRate = totalApplications > 0 ? (installedSales / totalApplications) * 100 : 0;
@@ -1092,13 +1115,15 @@ const AgentPerformance = ({ subscribers, agents }) => {
             });
 
             const totalApplications = agentSubs.length;
-            const installedSales = agentSubs.filter(sub => sub.status === 'Installed').length;
+            // UPDATED: Treat 'Installed' and 'Delivered' as successful.
+            const installedSales = agentSubs.filter(sub => ['Installed', 'Delivered'].includes(sub.status)).length;
             // FIX: Updated to only include valid statuses
-            const pending = agentSubs.filter(sub => ['Under Review', 'For Scheduling', 'Ready for Installation', 'APPROVED'].includes(sub.status)).length;
+            const pending = agentSubs.filter(sub => ['Under Review', 'For Scheduling', 'Ready for Installation', 'APPROVED', 'On the Way'].includes(sub.status)).length;
             const cancelledOrRejected = agentSubs.filter(sub => ['Canceled', 'Rejected'].includes(sub.status)).length;
             
+            // UPDATED: Treat 'Installed' and 'Delivered' as successful for commission calculation.
             const totalCommission = agentSubs
-                .filter(sub => sub.status === 'Installed')
+                .filter(sub => ['Installed', 'Delivered'].includes(sub.status))
                 .reduce((sum, sub) => sum + calculateCommission(sub), 0);
             
             const conversionRate = totalApplications > 0 ? (installedSales / totalApplications) * 100 : 0;
@@ -1208,11 +1233,12 @@ const PayoutReports = ({ subscribers, agents, currentUser, onSaveSubscriber }) =
         return subscribers.filter(sub => {
             if (!sub.activationDate) return false;
             const activationDate = new Date(sub.activationDate);
-            const isInstalled = sub.status === 'Installed';
+            // UPDATED: Treat 'Installed' and 'Delivered' as successful.
+            const isSuccessful = ['Installed', 'Delivered'].includes(sub.status);
             const matchesAgent = currentUser.role === 'admin' ? (selectedAgent === 'All' || sub.agent === selectedAgent) : sub.agent === currentUser.name;
             const matchesDate = activationDate.getFullYear() === selectedYear && (activationDate.getMonth() + 1) === selectedMonth;
             
-            return isInstalled && matchesAgent && matchesDate;
+            return isSuccessful && matchesAgent && matchesDate;
         }).map(sub => ({
             ...sub,
             commission: calculateCommission(sub)
@@ -1443,10 +1469,11 @@ const AccountingFinancial = ({ subscribers, expenses, onSaveExpense, onDeleteExp
     const [editingExpense, setEditingExpense] = useState(null);
     
     const financialData = useMemo(() => {
+        // UPDATED: Treat 'Installed' and 'Delivered' as successful.
         const filteredSubs = subscribers.filter(sub => {
             if (!sub.activationDate) return false;
             const activationDate = new Date(sub.activationDate);
-            return sub.status === 'Installed' &&
+            return ['Installed', 'Delivered'].includes(sub.status) &&
                    activationDate.getFullYear() === selectedYear &&
                    (activationDate.getMonth() + 1) === selectedMonth;
         });
@@ -1774,10 +1801,11 @@ const App = () => {
         const currentMonth = new Date().getMonth();
         const currentYear = new Date().getFullYear();
 
+        // UPDATED: Treat 'Installed' and 'Delivered' as successful.
         const monthlySubscribers = subscribers.filter(sub => {
             if (!sub.activationDate) return false;
             const activationDate = new Date(sub.activationDate);
-            return sub.status === 'Installed' &&
+            return ['Installed', 'Delivered'].includes(sub.status) &&
                 activationDate.getFullYear() === currentYear &&
                 activationDate.getMonth() === currentMonth;
         });
