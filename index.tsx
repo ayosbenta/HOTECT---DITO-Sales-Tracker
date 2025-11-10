@@ -409,12 +409,17 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
     );
 };
 
-const Overview = ({ subscribers, expenses, overviewPerformance, currentUser }) => {
-    const { totalSalesThisMonth, totalCommissions, topAgent } = overviewPerformance;
+const Overview = ({ subscribers, expenses, agents, currentUser }) => {
     const [activeTab, setActiveTab] = useState('Monthly');
     const [latestTransactionsCurrentPage, setLatestTransactionsCurrentPage] = useState(1);
     const [agentTransactionsCurrentPage, setAgentTransactionsCurrentPage] = useState(1);
     const itemsPerPage = 10;
+    
+    // Admin date range filters
+    const [fromYear, setFromYear] = useState(new Date().getFullYear());
+    const [fromMonth, setFromMonth] = useState(1);
+    const [toYear, setToYear] = useState(new Date().getFullYear());
+    const [toMonth, setToMonth] = useState(new Date().getMonth() + 1);
 
     const visibleSubscribers = useMemo(() => {
         if (currentUser.role === 'agent') {
@@ -422,6 +427,70 @@ const Overview = ({ subscribers, expenses, overviewPerformance, currentUser }) =
         }
         return subscribers;
     }, [subscribers, currentUser]);
+    
+    // Admin dashboard data calculation
+    const adminDashboardData = useMemo(() => {
+        if (currentUser.role !== 'admin') return null;
+
+        const fromDate = new Date(fromYear, fromMonth - 1, 1);
+        const toDate = new Date(toYear, toMonth, 0, 23, 59, 59, 999);
+
+        const subsInDateRangeByAppDate = subscribers.filter(sub => {
+            if (!sub.dateOfApplication) return false;
+            const appDate = new Date(sub.dateOfApplication);
+            return appDate >= fromDate && appDate <= toDate;
+        });
+
+        const installedDeliveredSubs = subscribers.filter(sub => {
+            if (!sub.activationDate || !['Installed', 'Delivered'].includes(sub.status)) return false;
+            const activationDate = new Date(sub.activationDate);
+            return activationDate >= fromDate && activationDate <= toDate;
+        });
+
+        const expensesInDateRange = expenses.filter(exp => {
+            if (!exp.date) return false;
+            const expenseDate = new Date(exp.date);
+            return expenseDate >= fromDate && expenseDate <= toDate;
+        });
+
+        const totalApplications = subsInDateRangeByAppDate.length;
+        const totalInstalledDelivered = installedDeliveredSubs.length;
+
+        const commissionOnRequest = installedDeliveredSubs
+            .filter(sub => sub.payoutStatus === 'ON REQUEST')
+            .reduce((sum, sub) => sum + calculateCommission(sub), 0);
+
+        const totalAgentCommissions = installedDeliveredSubs.reduce((sum, sub) => sum + calculateCommission(sub), 0);
+        const grossIncome = installedDeliveredSubs.reduce((sum, sub) => sum + getPlanPrice(sub.plan), 0);
+        const totalExpenses = expensesInDateRange.reduce((sum, exp) => sum + (exp.amount || 0), 0);
+        const totalAdminCommissions = grossIncome - totalAgentCommissions;
+        const netProfit = totalAdminCommissions - totalExpenses;
+
+        const agentSalesData = agents.map(agentName => {
+            const sales = installedDeliveredSubs.filter(sub => sub.agent === agentName).length;
+            return { name: agentName, sales };
+        });
+
+        const topAgent = agentSalesData.length > 0
+            ? agentSalesData.reduce((prev, current) => (prev.sales >= current.sales) ? prev : current)
+            : { name: 'N/A', sales: 0 };
+        
+        const finalTopAgent = topAgent.sales > 0 ? topAgent : { name: 'N/A' };
+
+
+        return {
+            totalApplications,
+            totalInstalledDelivered,
+            commissionOnRequest,
+            totalAgentCommissions,
+            grossIncome,
+            totalExpenses,
+            totalAdminCommissions,
+            topAgent: finalTopAgent,
+            netProfit,
+        };
+
+    }, [subscribers, expenses, agents, fromMonth, fromYear, toMonth, toYear, currentUser.role]);
     
     const paginatedTransactionsData = useMemo(() => {
         const sorted = [...subscribers]
@@ -639,24 +708,72 @@ const Overview = ({ subscribers, expenses, overviewPerformance, currentUser }) =
                     </div>
                 </div>
             ) : (
-                <div className="card-grid">
-                    <div className="overview-stat-card">
-                        <div className="stat-value">{visibleSubscribers.length}</div>
-                        <div className="stat-label">Total Subscribers</div>
+                <>
+                    <div className="card" style={{ marginBottom: '2rem' }}>
+                         <div className="report-filters">
+                            <div className="form-group">
+                                <label>From Month</label>
+                                <select className="form-control" value={fromMonth} onChange={e => setFromMonth(Number(e.target.value))}>
+                                    {Array.from({length: 12}, (_, i) => <option key={i+1} value={i+1}>{new Date(0, i).toLocaleString('default', { month: 'long' })}</option>)}
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>From Year</label>
+                                <input className="form-control" type="number" value={fromYear} onChange={e => setFromYear(Number(e.target.value))} />
+                            </div>
+                             <div className="form-group">
+                                <label>To Month</label>
+                                <select className="form-control" value={toMonth} onChange={e => setToMonth(Number(e.target.value))}>
+                                    {Array.from({length: 12}, (_, i) => <option key={i+1} value={i+1}>{new Date(0, i).toLocaleString('default', { month: 'long' })}</option>)}
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>To Year</label>
+                                <input className="form-control" type="number" value={toYear} onChange={e => setToYear(Number(e.target.value))} />
+                            </div>
+                        </div>
                     </div>
-                    <div className="overview-stat-card">
-                        <div className="stat-value">{totalSalesThisMonth}</div>
-                        <div className="stat-label">Total Sales This Month</div>
+                    <div className="card-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
+                        <div className="overview-stat-card">
+                            <div className="stat-value">{adminDashboardData.totalApplications}</div>
+                            <div className="stat-label">Total Applications</div>
+                        </div>
+                        <div className="overview-stat-card">
+                            <div className="stat-value">{adminDashboardData.totalInstalledDelivered}</div>
+                            <div className="stat-label">Total Installed/Delivered</div>
+                        </div>
+                        <div className="overview-stat-card">
+                            <div className="stat-value">₱{adminDashboardData.commissionOnRequest.toLocaleString()}</div>
+                            <div className="stat-label">Commission on Request</div>
+                        </div>
+                         <div className="overview-stat-card">
+                            <div className="stat-value">₱{adminDashboardData.totalAgentCommissions.toLocaleString()}</div>
+                            <div className="stat-label">Total Agent Commissions</div>
+                        </div>
+                        <div className="overview-stat-card">
+                            <div className="stat-value">₱{adminDashboardData.grossIncome.toLocaleString()}</div>
+                            <div className="stat-label">Gross Income</div>
+                        </div>
+                        <div className="overview-stat-card">
+                            <div className="stat-value">₱{adminDashboardData.totalExpenses.toLocaleString()}</div>
+                            <div className="stat-label">Total Expenses</div>
+                        </div>
+                        <div className="overview-stat-card">
+                            <div className="stat-value">₱{adminDashboardData.totalAdminCommissions.toLocaleString()}</div>
+                            <div className="stat-label">Total Admin Commissions</div>
+                        </div>
+                        <div className="overview-stat-card">
+                            <div className="stat-value">{adminDashboardData.topAgent.name}</div>
+                            <div className="stat-label">Top Performing Agent</div>
+                        </div>
+                        <div className="overview-stat-card">
+                            <div className="stat-value" style={{color: adminDashboardData.netProfit >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}}>
+                                ₱{adminDashboardData.netProfit.toLocaleString()}
+                            </div>
+                            <div className="stat-label">Net Profit</div>
+                        </div>
                     </div>
-                    <div className="overview-stat-card">
-                        <div className="stat-value">₱{totalCommissions.toLocaleString()}</div>
-                        <div className="stat-label">Total Commissions This Month</div>
-                    </div>
-                    <div className="overview-stat-card">
-                        <div className="stat-value">{topAgent.name}</div>
-                        <div className="stat-label">Top Performing Agent</div>
-                    </div>
-                </div>
+                </>
             )}
 
             <div className="card" style={{ marginTop: '2rem' }}>
@@ -1797,35 +1914,6 @@ const App = () => {
         await saveDataToSheet(updatedExpenses, 'Expenses');
     };
 
-    const overviewPerformance = useMemo(() => {
-        const currentMonth = new Date().getMonth();
-        const currentYear = new Date().getFullYear();
-
-        // UPDATED: Treat 'Installed' and 'Delivered' as successful.
-        const monthlySubscribers = subscribers.filter(sub => {
-            if (!sub.activationDate) return false;
-            const activationDate = new Date(sub.activationDate);
-            return ['Installed', 'Delivered'].includes(sub.status) &&
-                activationDate.getFullYear() === currentYear &&
-                activationDate.getMonth() === currentMonth;
-        });
-
-        const totalSalesThisMonth = monthlySubscribers.length;
-        const totalCommissions = monthlySubscribers.reduce((sum, sub) => sum + calculateCommission(sub), 0);
-
-        const agentSales = agents.map(agentName => {
-            const sales = monthlySubscribers.filter(sub => sub.agent === agentName).length;
-            return { name: agentName, sales };
-        });
-
-        const topAgent = agentSales.length > 0
-            ? agentSales.reduce((prev, current) => (prev.sales >= current.sales) ? prev : current)
-            : { name: 'N/A', sales: 0 };
-        
-        return { totalSalesThisMonth, totalCommissions, topAgent };
-    }, [subscribers, agents]);
-
-
     const handleLogin = (user) => {
         try {
             localStorage.setItem('currentUser', JSON.stringify(user));
@@ -1846,13 +1934,13 @@ const App = () => {
         if (!currentUser) return null;
 
         switch (activeMenu) {
-            case 'Overview': return <Overview subscribers={subscribers} expenses={expenses} overviewPerformance={overviewPerformance} currentUser={currentUser} />;
+            case 'Overview': return <Overview subscribers={subscribers} expenses={expenses} agents={agents} currentUser={currentUser} />;
             case 'Subscribers': return <Subscribers subscribers={subscribers} onSave={handleSaveSubscriber} onDelete={handleDeleteSubscriber} agents={agents} currentUser={currentUser} />;
             case 'My Performance': return <MyPerformance subscribers={subscribers} currentUser={currentUser} />;
             case 'Agent Performance': return <AgentPerformance subscribers={subscribers} agents={agents} />;
             case 'Payout Reports': return <PayoutReports subscribers={subscribers} agents={agents} currentUser={currentUser} onSaveSubscriber={handleSaveSubscriber} />;
             case 'Accounting & Financial': return <AccountingFinancial subscribers={subscribers} expenses={expenses} onSaveExpense={handleSaveExpense} onDeleteExpense={handleDeleteExpense} />;
-            default: return <Overview subscribers={subscribers} expenses={expenses} overviewPerformance={overviewPerformance} currentUser={currentUser} />;
+            default: return <Overview subscribers={subscribers} expenses={expenses} agents={agents} currentUser={currentUser} />;
         }
     };
 
