@@ -317,10 +317,11 @@
         height: 100%;
         background-color: rgba(0, 0, 0, 0.6);
         display: flex;
-        justify-content: center;
-        align-items: center;
         z-index: 1000;
         backdrop-filter: blur(4px);
+        align-items: flex-start;
+        padding: 5vh 1rem;
+        overflow-y: auto;
     }
     .modal-content {
         background-color: white;
@@ -330,6 +331,9 @@
         max-width: 550px;
         box-shadow: var(--shadow-lg);
         animation: fadeIn 0.3s ease-out;
+        margin: auto;
+        max-height: 90vh;
+        overflow-y: auto;
     }
     .modal-content h2 {
         margin-top: 0;
@@ -695,9 +699,14 @@
             margin-bottom: 0;
             text-align: center;
         }
+        .modal-backdrop {
+            padding: 1rem;
+        }
         .modal-content {
-            width: calc(100% - 2rem);
-            margin: 0 1rem;
+            width: 100%;
+            margin: 0;
+            padding: 1.5rem;
+            max-height: calc(100vh - 2rem);
         }
         .report-filters {
             flex-direction: column;

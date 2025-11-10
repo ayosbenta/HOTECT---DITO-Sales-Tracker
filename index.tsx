@@ -561,44 +561,43 @@ const Overview = ({ subscribers, expenses, agents, currentUser }) => {
     const agentPerformance = useMemo(() => {
         if (currentUser.role !== 'agent') return null;
         
+        // All-time stats
+        const totalSubscribers = visibleSubscribers.length;
+        const totalInstalled = visibleSubscribers.filter(sub => ['Installed', 'Delivered'].includes(sub.status)).length;
+        const totalOnTheWayReady = visibleSubscribers.filter(sub => ['On the Way', 'Ready for Installation'].includes(sub.status)).length;
+        const totalRejectedCancelled = visibleSubscribers.filter(sub => ['Rejected', 'Canceled'].includes(sub.status)).length;
+
+        // Payout stats (all-time for agent, but only for installed/delivered subs)
+        const installedSubscribers = visibleSubscribers.filter(sub => ['Installed', 'Delivered'].includes(sub.status));
+        const pendingPayouts = installedSubscribers.filter(sub => (sub.payoutStatus || 'PENDING') === 'PENDING').length;
+        const onRequestPayouts = installedSubscribers.filter(sub => sub.payoutStatus === 'ON REQUEST').length;
+        const completedPayoutsData = installedSubscribers.filter(sub => sub.payoutStatus === 'PAID');
+        const completedPayouts = completedPayoutsData.length;
+        const totalCompletedCommission = completedPayoutsData.reduce((sum, sub) => sum + calculateCommission(sub), 0);
+
+        // Monthly stats for conversion rate
         const currentMonth = new Date().getMonth();
         const currentYear = new Date().getFullYear();
-
-        // For "Total Installed" this month
-        // UPDATED: Treat 'Installed' and 'Delivered' as successful.
-        const installedThisMonth = visibleSubscribers.filter(sub => {
-            if (!sub.activationDate) return false;
-            const activationDate = new Date(sub.activationDate);
-            return ['Installed', 'Delivered'].includes(sub.status) &&
-                   activationDate.getFullYear() === currentYear &&
-                   activationDate.getMonth() === currentMonth;
-        });
-        const totalSales = installedThisMonth.length;
-
-        // For "Monthly Conversion Rate"
         const applicationsThisMonth = visibleSubscribers.filter(sub => {
             if (!sub.dateOfApplication) return false;
             const appDate = new Date(sub.dateOfApplication);
             return appDate.getFullYear() === currentYear && appDate.getMonth() === currentMonth;
         });
-        // UPDATED: Treat 'Installed' and 'Delivered' as successful.
         const installedFromThisMonthApps = applicationsThisMonth.filter(sub => ['Installed', 'Delivered'].includes(sub.status)).length;
-        const totalApplications = applicationsThisMonth.length;
-        const conversionRate = totalApplications > 0 ? (installedFromThisMonthApps / totalApplications) * 100 : 0;
-
-        // For Payout stats (all-time for agent, but only for installed/delivered subs)
-        // UPDATED: Treat 'Installed' and 'Delivered' as successful.
-        const installedSubscribers = visibleSubscribers.filter(sub => ['Installed', 'Delivered'].includes(sub.status));
-        const pendingPayouts = installedSubscribers.filter(sub => (sub.payoutStatus || 'PENDING') === 'PENDING').length;
-        const onRequestPayouts = installedSubscribers.filter(sub => sub.payoutStatus === 'ON REQUEST').length;
+        const totalApplicationsThisMonth = applicationsThisMonth.length;
+        const conversionRate = totalApplicationsThisMonth > 0 ? (installedFromThisMonthApps / totalApplicationsThisMonth) * 100 : 0;
         
-        const completedPayoutsData = installedSubscribers.filter(sub => sub.payoutStatus === 'PAID');
-        const completedPayouts = completedPayoutsData.length;
-        
-        const grossIncome = completedPayoutsData.reduce((sum, sub) => sum + getPlanPrice(sub.plan), 0);
-        const totalCompletedCommission = completedPayoutsData.reduce((sum, sub) => sum + calculateCommission(sub), 0);
-
-        return { totalSales, conversionRate, pendingPayouts, onRequestPayouts, completedPayouts, grossIncome, totalCompletedCommission };
+        return { 
+            totalSubscribers,
+            totalInstalled,
+            totalOnTheWayReady,
+            totalRejectedCancelled,
+            pendingPayouts,
+            onRequestPayouts,
+            completedPayouts,
+            totalCompletedCommission,
+            conversionRate 
+        };
     }, [visibleSubscribers, currentUser.role]);
 
     const chartData = useMemo(() => {
@@ -704,39 +703,16 @@ const Overview = ({ subscribers, expenses, agents, currentUser }) => {
         <div>
             <h1>Overview</h1>
             {currentUser.role === 'agent' ? (
-                <div className="card-grid">
-                    <div className="overview-stat-card">
-                        <div className="stat-value">{visibleSubscribers.length}</div>
-                        <div className="stat-label">Your Total Subscribers</div>
-                    </div>
-                    <div className="overview-stat-card">
-                        <div className="stat-value">{agentPerformance.totalSales}</div>
-                        <div className="stat-label">Total Installed</div>
-                    </div>
-                    <div className="overview-stat-card">
-                        <div className="stat-value">{agentPerformance.pendingPayouts}</div>
-                        <div className="stat-label">Pending Payout</div>
-                    </div>
-                    <div className="overview-stat-card">
-                        <div className="stat-value">{agentPerformance.onRequestPayouts}</div>
-                        <div className="stat-label">On Request Payout</div>
-                    </div>
-                     <div className="overview-stat-card">
-                        <div className="stat-value">{agentPerformance.completedPayouts}</div>
-                        <div className="stat-label">Total Paid Payout</div>
-                    </div>
-                    <div className="overview-stat-card">
-                        <div className="stat-value">{agentPerformance.conversionRate.toFixed(1)}%</div>
-                        <div className="stat-label">Monthly Conversion Rate</div>
-                    </div>
-                     <div className="overview-stat-card">
-                        <div className="stat-value">₱{agentPerformance.grossIncome.toLocaleString()}</div>
-                        <div className="stat-label">Gross Income (Paid)</div>
-                    </div>
-                    <div className="overview-stat-card">
-                        <div className="stat-value">₱{agentPerformance.totalCompletedCommission.toLocaleString()}</div>
-                        <div className="stat-label">Total Commission (Paid)</div>
-                    </div>
+                <div className="kpi-card-grid">
+                    <KpiCard title="Your Total Subscribers" value={agentPerformance.totalSubscribers} icon="subscribers" colorClass="bg-blue" />
+                    <KpiCard title="Total Installed" value={agentPerformance.totalInstalled} icon="installedDelivered" colorClass="bg-green" />
+                    <KpiCard title="On the Way / Ready" value={agentPerformance.totalOnTheWayReady} icon="onTheWayReady" colorClass="bg-blue" />
+                    <KpiCard title="Rejected / Cancelled" value={agentPerformance.totalRejectedCancelled} icon="rejectedApplications" colorClass="bg-red" />
+                    <KpiCard title="Pending Payout" value={agentPerformance.pendingPayouts} icon="commissionRequest" colorClass="bg-orange" />
+                    <KpiCard title="On Request Payout" value={agentPerformance.onRequestPayouts} icon="payout" colorClass="bg-blue" />
+                    <KpiCard title="Total Paid Payout" value={agentPerformance.completedPayouts} icon="grossIncome" colorClass="bg-green" />
+                    <KpiCard title="Monthly Conversion Rate" value={`${agentPerformance.conversionRate.toFixed(1)}%`} icon="performance" colorClass="bg-blue" />
+                    <KpiCard title="Total Commission (Paid)" value={agentPerformance.totalCompletedCommission} icon="adminCommission" colorClass="bg-green" currency />
                 </div>
             ) : (
                 <>
@@ -1796,7 +1772,17 @@ const App = () => {
             }
 
             try {
-                const response = await fetch(GOOGLE_SCRIPT_URL);
+                // Reworked to use a GET request for reading data. This is the standard and
+                // safer method for fetching data and prevents the backend's doPost function
+                // from misinterpreting a read request as a command to overwrite the sheet
+                // with empty data, which was causing data loss on refresh.
+                const readUrl = `${GOOGLE_SCRIPT_URL}?action=readAll`;
+
+                const response = await fetch(readUrl, {
+                    method: 'GET',
+                    redirect: 'follow', // This is often necessary for Google Apps Script redirects
+                });
+
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
@@ -1835,7 +1821,7 @@ const App = () => {
 
             } catch (e) {
                 console.error("Failed to fetch data from Google Sheets:", e);
-                setError("Failed to load data. Please check the Google Sheet and script configuration.");
+                setError(`Failed to load data. Please check the Google Sheet and script configuration.\nError: ${e.message}`);
             } finally {
                 setIsLoading(false);
             }
@@ -1844,26 +1830,27 @@ const App = () => {
         fetchData();
     }, [currentUser]);
     
-    const saveDataToSheet = async (dataToSave, sheetName) => {
+    const saveDataToSheet = async (data, sheetName) => {
         setIsSaving(true);
-        setError(null); // Clear previous errors
+        setError(null);
         try {
-            const dataForSheet = JSON.parse(JSON.stringify(dataToSave));
+            const dataToSave = JSON.parse(JSON.stringify(data));
 
             if (sheetName === 'DATA') {
-                dataForSheet.forEach(item => {
-                    item.dateOfApplication = formatDateForSheet(item.dateOfApplication);
-                    item.activationDate = formatDateForSheet(item.activationDate);
+                dataToSave.forEach(item => {
+                    if (item.dateOfApplication) item.dateOfApplication = formatDateForSheet(item.dateOfApplication);
+                    if (item.activationDate) item.activationDate = formatDateForSheet(item.activationDate);
                 });
             } else if (sheetName === 'Expenses') {
-                dataForSheet.forEach(item => {
-                    item.date = formatDateForSheet(item.date);
+                dataToSave.forEach(item => {
+                    if (item.date) item.date = formatDateForSheet(item.date);
                 });
             }
 
             const payload = {
+                action: 'save',
                 sheetName: sheetName,
-                data: dataForSheet,
+                data: dataToSave,
             };
 
             const response = await fetch(GOOGLE_SCRIPT_URL, {
@@ -1887,12 +1874,10 @@ const App = () => {
 
     const handleSaveSubscriber = async (subscriberData) => {
         let updatedSubscribers;
-        if (subscriberData.id && String(subscriberData.id).startsWith('sheet-row-')) {
+        if (subscriberData.id) { // UPDATE
             updatedSubscribers = subscribers.map(sub => sub.id === subscriberData.id ? subscriberData : sub);
-        } else if (subscriberData.id) {
-            updatedSubscribers = subscribers.map(sub => sub.id === subscriberData.id ? subscriberData : sub);
-        } else {
-            const newSubscriber = { ...subscriberData, id: Date.now() };
+        } else { // ADD
+            const newSubscriber = { ...subscriberData, id: `new-${Date.now()}` };
             updatedSubscribers = [newSubscriber, ...subscribers];
         }
         setSubscribers(updatedSubscribers);
@@ -1907,12 +1892,10 @@ const App = () => {
 
     const handleSaveExpense = async (expenseData) => {
         let updatedExpenses;
-        if (expenseData.id && String(expenseData.id).includes('-row-')) {
-             updatedExpenses = expenses.map(exp => exp.id === expenseData.id ? expenseData : exp);
-        } else if (expenseData.id) {
-             updatedExpenses = expenses.map(exp => exp.id === expenseData.id ? expenseData : exp);
-        } else {
-            const newExpense = { ...expenseData, id: Date.now() };
+        if (expenseData.id) { // UPDATE
+            updatedExpenses = expenses.map(exp => exp.id === expenseData.id ? expenseData : exp);
+        } else { // ADD
+            const newExpense = { ...expenseData, id: `new-${Date.now()}` };
             updatedExpenses = [newExpense, ...expenses];
         }
         setExpenses(updatedExpenses);
