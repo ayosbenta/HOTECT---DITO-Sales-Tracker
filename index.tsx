@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 
@@ -113,7 +112,7 @@ const statusBadgeStyle = (status) => ({
 
 // --- SVG ICONS ---
 const Icon = ({ path, className = '' }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="http://www.w3.org/2000/svg" fill="currentColor" className={className} style={{ width: '1.25rem', height: '1.25rem' }}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className} style={{ width: '1.25rem', height: '1.25rem' }}>
         <path d={path} />
     </svg>
 );
@@ -126,7 +125,18 @@ const ICONS = {
     accounting: "M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 14H7v-2h10v2zm0-4H7v-2h10v2zm0-4H7V7h10v2z",
     logout: "M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z",
     menu: "M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z",
+    // Admin Overview Icons
+    totalApplications: "M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zM16 18H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z",
+    installedDelivered: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z",
+    commissionRequest: "M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm-1-5h2v2h-2zm0-8h2v6h-2z",
+    agentCommissions: "M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z",
+    grossIncome: "M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6h-6z",
+    totalExpenses: "M16 18l2.29-2.29-4.88-4.88-4 4L2 7.41 3.41 6l6 6 4-4 6.3 6.29L22 12v6h-6z",
+    adminCommission: "M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z",
+    topAgent: "M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm7 6c-1.65 0-3-1.35-3-3V5h6v6c0 1.65-1.35 3-3 3zm7-6c0 1.3-.84 2.4-2 2.82V7h2v1z",
+    netProfit: "M15 14c-2.39 0-4.47 1.21-5.73 3.05-.38-.21-.81-.35-1.27-.35-1.38 0-2.5 1.12-2.5 2.5s1.12 2.5 2.5 2.5c.81 0 1.5-.39 1.96-1H15c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5v1.28c-.21.08-.4.19-.58.32-.42-.9-1.33-1.6-2.42-1.6-1.66 0-3 1.34-3 3s1.34 3 3 3h.28c.31.89.88 1.66 1.63 2.24.47.36.99.64 1.56.84 1.48 2.08 3.96 3.42 6.78 3.42 4.97 0 9-4.03 9-9s-4.03-9-9-9-9 4.03-9 9h2c0-3.86 3.14-7 7-7s7 3.14 7 7-3.14 7-7 7z",
 };
+
 
 // --- COMPONENTS ---
 
@@ -409,6 +419,18 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
         </nav>
     );
 };
+
+const KpiCard = ({ title, value, icon, colorClass, currency = false, valueColor = null }) => (
+    <div className={`kpi-card ${colorClass}`}>
+        <div className="kpi-card-header">
+            <Icon path={ICONS[icon]} className="kpi-icon" />
+            <span className="kpi-label">{title}</span>
+        </div>
+        <p className="kpi-value" style={valueColor ? { color: valueColor } : {}}>
+            {currency ? `₱${Number(value).toLocaleString()}` : (typeof value === 'number' ? value.toLocaleString() : value)}
+        </p>
+    </div>
+);
 
 const Overview = ({ subscribers, expenses, agents, currentUser }) => {
     const [activeTab, setActiveTab] = useState('Monthly');
@@ -735,45 +757,23 @@ const Overview = ({ subscribers, expenses, agents, currentUser }) => {
                             </div>
                         </div>
                     </div>
-                    <div className="card-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
-                        <div className="overview-stat-card">
-                            <div className="stat-value">{adminDashboardData.totalApplications}</div>
-                            <div className="stat-label">Total Applications</div>
-                        </div>
-                        <div className="overview-stat-card">
-                            <div className="stat-value">{adminDashboardData.totalInstalledDelivered}</div>
-                            <div className="stat-label">Total Installed/Delivered</div>
-                        </div>
-                        <div className="overview-stat-card">
-                            <div className="stat-value">₱{adminDashboardData.commissionOnRequest.toLocaleString()}</div>
-                            <div className="stat-label">Commission on Request</div>
-                        </div>
-                         <div className="overview-stat-card">
-                            <div className="stat-value">₱{adminDashboardData.totalAgentCommissions.toLocaleString()}</div>
-                            <div className="stat-label">Total Agent Commissions</div>
-                        </div>
-                        <div className="overview-stat-card">
-                            <div className="stat-value">₱{adminDashboardData.grossIncome.toLocaleString()}</div>
-                            <div className="stat-label">Gross Income</div>
-                        </div>
-                        <div className="overview-stat-card">
-                            <div className="stat-value">₱{adminDashboardData.totalExpenses.toLocaleString()}</div>
-                            <div className="stat-label">Total Expenses</div>
-                        </div>
-                        <div className="overview-stat-card">
-                            <div className="stat-value">₱{adminDashboardData.totalAdminCommissions.toLocaleString()}</div>
-                            <div className="stat-label">Admin Commission</div>
-                        </div>
-                        <div className="overview-stat-card">
-                            <div className="stat-value">{adminDashboardData.topAgent.name}</div>
-                            <div className="stat-label">Top Performing Agent</div>
-                        </div>
-                        <div className="overview-stat-card">
-                            <div className="stat-value" style={{color: adminDashboardData.netProfit >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}}>
-                                ₱{adminDashboardData.netProfit.toLocaleString()}
-                            </div>
-                            <div className="stat-label">Net Profit</div>
-                        </div>
+                    <div className="kpi-card-grid">
+                        <KpiCard title="Total Applications" value={adminDashboardData.totalApplications} icon="totalApplications" colorClass="bg-blue" />
+                        <KpiCard title="Total Installed/Delivered" value={adminDashboardData.totalInstalledDelivered} icon="installedDelivered" colorClass="bg-blue" />
+                        <KpiCard title="Commission on Request" value={adminDashboardData.commissionOnRequest} icon="commissionRequest" colorClass="bg-orange" currency />
+                        <KpiCard title="Total Agent Commissions" value={adminDashboardData.totalAgentCommissions} icon="agentCommissions" colorClass="bg-orange" currency />
+                        <KpiCard title="Gross Income" value={adminDashboardData.grossIncome} icon="grossIncome" colorClass="bg-green" currency />
+                        <KpiCard title="Total Expenses" value={adminDashboardData.totalExpenses} icon="totalExpenses" colorClass="bg-red" currency />
+                        <KpiCard title="Admin Commission" value={adminDashboardData.totalAdminCommissions} icon="adminCommission" colorClass="bg-green" currency />
+                        <KpiCard title="Top Performing Agent" value={adminDashboardData.topAgent.name} icon="topAgent" colorClass="bg-blue" />
+                        <KpiCard 
+                            title="Net Profit" 
+                            value={adminDashboardData.netProfit} 
+                            icon="netProfit" 
+                            colorClass="bg-green" 
+                            currency 
+                            valueColor={adminDashboardData.netProfit >= 0 ? 'white' : 'var(--accent-red)'}
+                         />
                     </div>
                 </>
             )}
