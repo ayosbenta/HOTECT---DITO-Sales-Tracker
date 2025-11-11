@@ -156,6 +156,12 @@ const Login = ({ onLogin, agents }) => {
             return;
         }
 
+        // Custom login for Leah
+        if (username.toLowerCase() === 'leah' && password === 'Leah123') {
+            onLogin({ name: 'Leah - Boosting', role: 'agent' });
+            return;
+        }
+
         // Prevent login as Jackie - Personal
         if (username.toLowerCase() === 'jackie - personal') {
             setError('Invalid username or password.');
