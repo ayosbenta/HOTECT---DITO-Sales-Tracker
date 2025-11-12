@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 
@@ -1027,13 +1028,18 @@ const Subscribers = ({ subscribers, onSave, onDelete, agents, currentUser }) => 
         return subscribers;
     }, [subscribers, currentUser]);
 
-    const filteredSubscribers = useMemo(() => 
+    const filteredSubscribers = useMemo(() =>
         visibleSubscribers
-            .filter(sub => 
-                Object.values(sub).some(val => 
-                    String(val).toLowerCase().includes(searchTerm.toLowerCase())
-                )
-            )
+            .filter(sub => {
+                const lowercasedTerm = searchTerm.toLowerCase().trim();
+                if (!lowercasedTerm) return true; // Show all if search is empty
+
+                // FIX: Coerce applicationNo and subscriberNo to strings before searching
+                // to prevent .toLowerCase() from being called on a number.
+                return (sub.name?.toLowerCase().includes(lowercasedTerm)) ||
+                       (String(sub.applicationNo || '').toLowerCase().includes(lowercasedTerm)) ||
+                       (String(sub.subscriberNo || '').toLowerCase().includes(lowercasedTerm));
+            })
             .sort((a, b) => {
                 const dateA = a.dateOfApplication ? new Date(a.dateOfApplication).getTime() : 0;
                 const dateB = b.dateOfApplication ? new Date(b.dateOfApplication).getTime() : 0;
@@ -1072,11 +1078,11 @@ const Subscribers = ({ subscribers, onSave, onDelete, agents, currentUser }) => 
             <div className="card">
                 <input
                     type="text"
-                    placeholder="Search subscribers..."
+                    placeholder="Search by Name, Application No, or Subscriber No..."
                     className="form-control"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    aria-label="Search subscribers"
+                    aria-label="Search by Name, Application No, or Subscriber No"
                     style={{maxWidth: '450px'}}
                 />
                 <div className="table-responsive-wrapper">
@@ -1634,7 +1640,7 @@ const AccountingFinancial = ({ subscribers, expenses, onSaveExpense, onDeleteExp
         const totalRevenue = filteredSubs.reduce((sum, sub) => sum + getPlanPrice(sub.plan), 0);
         const totalPayouts = filteredSubs.reduce((sum, sub) => sum + calculateCommission(sub), 0);
         const totalExpenses = filteredExpenses.reduce((sum, exp) => sum + parseFloat(exp.amount || 0), 0);
-        const netRevenue = totalRevenue - totalPayouts - totalExpenses;
+        const netRevenue = totalPayouts - totalExpenses;
 
         const planDistribution = residentialPlans.map(plan => ({
             name: plan,
