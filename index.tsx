@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 
@@ -163,8 +162,20 @@ const Login = ({ onLogin, agents }) => {
             return;
         }
 
+        // Custom login for Jackie
+        if (username.toLowerCase() === 'jackie' && password === 'JackieDito2026') {
+            onLogin({ name: 'Jackie - Boosting', role: 'agent' });
+            return;
+        }
+
         // Prevent login as Jackie - Personal
         if (username.toLowerCase() === 'jackie - personal') {
+            setError('Invalid username or password.');
+            return;
+        }
+
+        // Prevent generic login for Jackie - Boosting (Force custom login)
+        if (username.toLowerCase() === 'jackie - boosting') {
             setError('Invalid username or password.');
             return;
         }
