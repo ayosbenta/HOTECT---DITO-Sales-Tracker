@@ -1470,6 +1470,7 @@ const PayoutReports = ({ subscribers, agents, currentUser, onSaveSubscriber }) =
                             <tr>
                                 <th>Agent Name</th>
                                 <th>Subscriber Name</th>
+                                <th>Application No</th>
                                 <th>Plan</th>
                                 <th>Activation Date</th>
                                 <th>Commission</th>
@@ -1481,6 +1482,7 @@ const PayoutReports = ({ subscribers, agents, currentUser, onSaveSubscriber }) =
                                 <tr key={item.id}>
                                     <td>{item.agent}</td>
                                     <td>{item.name}</td>
+                                    <td>{item.applicationNo}</td>
                                     <td>{item.plan}</td>
                                     <td>{formatDate(item.activationDate)}</td>
                                     <td>₱{item.commission.toLocaleString()}</td>
@@ -1505,7 +1507,7 @@ const PayoutReports = ({ subscribers, agents, currentUser, onSaveSubscriber }) =
                                 </tr>
                             )) : (
                                 <tr>
-                                    <td colSpan={6} style={{textAlign: 'center', padding: '1rem'}}>No data available for the selected period.</td>
+                                    <td colSpan={7} style={{textAlign: 'center', padding: '1rem'}}>No data available for the selected period.</td>
                                 </tr>
                             )}
                         </tbody>
