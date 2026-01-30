@@ -2,24 +2,21 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 
 // --- CONFIGURATION ---
-// IMPORTANT: Paste your deployed Google Apps Script Web App URL here.
-const GOOGLE_SCRIPT_URL: string = 'https://script.google.com/macros/s/AKfycbyo9W0vsdFowaCuR1M2E5SPm2T-km_XXWp--xbrCp1-J1D_T-PfaO5X0KhtvenzKlY6/exec';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyo9W0vsdFowaCuR1M2E5SPm2T-km_XXWp--xbrCp1-J1D_T-PfaO5X0KhtvenzKlY6/exec';
 
-// --- MOCK DATA (for local development or as fallback) ---
+// --- MOCK DATA ---
 const initialAgents = ['Ryan', 'Leah - Boosting', 'Jackie - Boosting', 'Jackie - Personal'];
 
 const residentialPlans = [
   '1490 - 500mbps'
 ];
 
-// FIX: Aligned with Google Sheet data validation rules.
 const subscriberStatuses = [
     'Under Review', 'For Scheduling', 'Ready for Installation', 'On the Way', 'APPROVED', 'Installed', 
     'Reschedule', 'POB', 'Canceled', 'Rejected', 'No Signal', 'Unable to Reach', 'Delivered'
 ];
 
 const payoutStatuses = ['PENDING', 'ON REQUEST', 'PAID'];
-
 
 // --- HELPERS ---
 const calculateCommission = (subscriber) => {
@@ -40,24 +37,10 @@ const getPlanPrice = (plan) => {
 };
 
 const formatDate = (dateString) => {
-    if (!dateString) return dateString;
-    const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(dateString);
-    let date;
-    if (isDateOnly) {
-        const parts = dateString.split('-');
-        date = new Date(Date.UTC(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10)));
-    } else {
-        date = new Date(dateString);
-    }
+    if (!dateString) return '';
+    const date = new Date(dateString);
     if (isNaN(date.getTime())) return dateString;
-
-    const options: Intl.DateTimeFormatOptions = {
-        year: 'numeric',
-        month: 'short',
-        day: '2-digit',
-        timeZone: 'UTC'
-    };
-    return date.toLocaleDateString('en-US', options);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' });
 };
 
 const normalizeDateToYYYYMMDD = (sheetDate) => {
@@ -88,8 +71,7 @@ const statusBadgeStyle = (status) => ({
         '#6c757d',
 });
 
-
-// --- SVG ICONS ---
+// --- ICONS ---
 const Icon = ({ path, className = '' }) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className} style={{ width: '1.25rem', height: '1.25rem' }}>
         <path d={path} />
@@ -117,7 +99,6 @@ const ICONS = {
     netProfit: "M15 14c-2.39 0-4.47 1.21-5.73 3.05-.38-.21-.81-.35-1.27-.35-1.38 0-2.5 1.12-2.5 2.5s1.12 2.5 2.5 2.5c.81 0 1.5-.39 1.96-1H15c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5v1.28c-.21.08-.4.19-.58.32-.42-.9-1.33-1.6-2.42-1.6-1.66 0-3 1.34-3 3s1.34 3 3 3h.28c.31.89.88 1.66 1.63 2.24.47.36.99.64 1.56.84 1.48 2.08 3.96 3.42 6.78 3.42 4.97 0 9-4.03 9-9s-4.03-9-9-9-9 4.03-9 9h2c0-3.86 3.14-7 7-7s7 3.14 7 7-3.14 7-7 7z",
 };
 
-
 // --- COMPONENTS ---
 
 const Login = ({ onLogin, agents }) => {
@@ -129,7 +110,7 @@ const Login = ({ onLogin, agents }) => {
         e.preventDefault();
         setError('');
 
-        if (username.toLowerCase() === 'admin' && password === 'admin') {
+        if (username.toLowerCase() === 'admin' && password === 'M@y191992') {
             onLogin({ name: 'Admin', role: 'admin' });
             return;
         }
@@ -192,11 +173,6 @@ const Sidebar = ({ activeMenu, setActiveMenu, userRole, isOpen, onClose }) => {
         { name: 'Accounting & Financial', icon: 'accounting', roles: ['admin'] },
     ];
 
-    const handleMenuClick = (menuName) => {
-        setActiveMenu(menuName);
-        onClose();
-    };
-
     return (
         <>
             {isOpen && <div className="sidebar-backdrop" onClick={onClose}></div>}
@@ -209,10 +185,8 @@ const Sidebar = ({ activeMenu, setActiveMenu, userRole, isOpen, onClose }) => {
                     <div
                         key={menu.name}
                         className={`menu-item ${activeMenu === menu.name ? 'active' : ''}`}
-                        onClick={() => handleMenuClick(menu.name)}
+                        onClick={() => { setActiveMenu(menu.name); onClose(); }}
                         role="button"
-                        tabIndex={0}
-                        aria-label={menu.name}
                     >
                         <Icon path={ICONS[menu.icon]} />
                         <span>{menu.name}</span>
@@ -223,24 +197,22 @@ const Sidebar = ({ activeMenu, setActiveMenu, userRole, isOpen, onClose }) => {
     );
 };
 
-const Header = ({ currentUser, onLogout, isSaving, onToggleSidebar }) => {
-    return (
-        <header className="app-header no-print">
-            <div className="header-start">
-                 <button className="sidebar-toggle" onClick={onToggleSidebar} aria-label="Toggle menu">
-                    <Icon path={ICONS.menu} />
-                </button>
-                <div className={`saving-indicator ${isSaving ? 'is-saving' : ''}`}>Saving...</div>
-            </div>
-            <div className="header-user">
-                <span>Welcome, <strong>{currentUser.name}</strong></span>
-                <button className="logout-btn" onClick={onLogout}>
-                    <Icon path={ICONS.logout} /> Logout
-                </button>
-            </div>
-        </header>
-    );
-};
+const Header = ({ currentUser, onLogout, isSaving, onToggleSidebar }) => (
+    <header className="app-header no-print">
+        <div className="header-start">
+             <button className="sidebar-toggle" onClick={onToggleSidebar} aria-label="Toggle menu">
+                <Icon path={ICONS.menu} />
+            </button>
+            <div className={`saving-indicator ${isSaving ? 'is-saving' : ''}`}>Saving...</div>
+        </div>
+        <div className="header-user">
+            <span>Welcome, <strong>{currentUser.name}</strong></span>
+            <button className="logout-btn" onClick={onLogout}>
+                <Icon path={ICONS.logout} /> Logout
+            </button>
+        </div>
+    </header>
+);
 
 const LineChart = ({ labels, datasets }) => {
     const containerRef = useRef(null);
@@ -266,6 +238,7 @@ const LineChart = ({ labels, datasets }) => {
     const yAxisMax = maxValue === 0 ? 1000 : Math.ceil(maxValue / 1000) * 1000;
     const getX = (index) => padding.left + (index / (labels.length - 1)) * chartWidth;
     const getY = (value) => padding.top + chartHeight - (value / yAxisMax) * chartHeight;
+
     const yAxisLabels = Array.from({ length: 6 }, (_, i) => {
         const value = (yAxisMax / 5) * i;
         return { value, y: getY(value) };
@@ -360,8 +333,7 @@ const KpiCard = ({ title, value, icon, colorClass, currency = false, valueColor 
 
 const Overview = ({ subscribers, expenses, agents, currentUser }) => {
     const [activeTab, setActiveTab] = useState('Monthly');
-    const [latestTransactionsCurrentPage, setLatestTransactionsCurrentPage] = useState(1);
-    const [agentTransactionsCurrentPage, setAgentTransactionsCurrentPage] = useState(1);
+    const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
     const [fromYear, setFromYear] = useState(new Date().getFullYear());
     const [fromMonth, setFromMonth] = useState(1);
@@ -370,9 +342,7 @@ const Overview = ({ subscribers, expenses, agents, currentUser }) => {
 
     const visibleSubscribers = useMemo(() => {
         if (currentUser.role === 'agent') {
-            if (currentUser.name === 'Jackie - Boosting') {
-                return subscribers.filter(sub => sub.agent === 'Jackie - Boosting' || sub.agent === 'Jackie - Personal');
-            }
+            if (currentUser.name === 'Jackie - Boosting') return subscribers.filter(sub => sub.agent === 'Jackie - Boosting' || sub.agent === 'Jackie - Personal');
             return subscribers.filter(sub => sub.agent === currentUser.name);
         }
         return subscribers;
@@ -382,140 +352,115 @@ const Overview = ({ subscribers, expenses, agents, currentUser }) => {
         if (currentUser.role !== 'admin') return null;
         const fromDate = new Date(fromYear, fromMonth - 1, 1);
         const toDate = new Date(toYear, toMonth, 0, 23, 59, 59, 999);
-        const subsInDateRangeByAppDate = subscribers.filter(sub => {
-            if (!sub.dateOfApplication) return false;
-            const appDate = new Date(sub.dateOfApplication);
-            return appDate >= fromDate && appDate <= toDate;
-        });
-        const installedDeliveredSubs = subscribers.filter(sub => {
-            if (!sub.activationDate || !['Installed', 'Delivered'].includes(sub.status)) return false;
-            const activationDate = new Date(sub.activationDate);
-            return activationDate >= fromDate && activationDate <= toDate;
-        });
-        const expensesInDateRange = expenses.filter(exp => {
-            if (!exp.date) return false;
-            const expenseDate = new Date(exp.date);
-            return expenseDate >= fromDate && expenseDate <= toDate;
-        });
+        const rangeFilter = (dStr) => {
+            if (!dStr) return false;
+            const d = new Date(dStr);
+            return d >= fromDate && d <= toDate;
+        };
 
-        const totalApplications = subsInDateRangeByAppDate.length;
-        const totalInstalledDelivered = installedDeliveredSubs.length;
-        const totalOnTheWayReady = subsInDateRangeByAppDate.filter(sub => ['On the Way', 'Ready for Installation'].includes(sub.status)).length;
-        const totalRejected = subsInDateRangeByAppDate.filter(sub => sub.status === 'Rejected').length;
-        const commissionOnRequest = installedDeliveredSubs.filter(sub => sub.payoutStatus === 'ON REQUEST').reduce((sum, sub) => sum + 1200, 0);
-        const totalAgentCommissions = installedDeliveredSubs.reduce((sum, sub) => sum + calculateCommission(sub), 0);
+        const inRangeSubs = subscribers.filter(s => rangeFilter(s.dateOfApplication));
+        const installedSubs = subscribers.filter(s => ['Installed', 'Delivered'].includes(s.status) && rangeFilter(s.activationDate));
+        const inRangeExpenses = expenses.filter(e => rangeFilter(e.date));
+
+        const totalApplications = inRangeSubs.length;
+        const totalInstalledDelivered = installedSubs.length;
+        const totalOnTheWayReady = inRangeSubs.filter(sub => ['On the Way', 'Ready for Installation'].includes(sub.status)).length;
+        const totalRejected = inRangeSubs.filter(sub => sub.status === 'Rejected').length;
+        const commissionOnRequest = installedSubs.filter(sub => sub.payoutStatus === 'ON REQUEST').reduce((sum, sub) => sum + 1200, 0);
+        const totalAgentCommissions = installedSubs.reduce((sum, sub) => sum + calculateCommission(sub), 0);
         const grossIncome = totalInstalledDelivered * 1200;
-        const totalExpenses = expensesInDateRange.reduce((sum, exp) => sum + (exp.amount || 0), 0);
+        const totalExpenses = inRangeExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
         const totalAdminCommissions = grossIncome - totalAgentCommissions;
         const netProfit = totalAdminCommissions - totalExpenses;
-        const agentSalesData = agents.map(agentName => {
-            const sales = installedDeliveredSubs.filter(sub => sub.agent === agentName).length;
-            return { name: agentName, sales };
-        });
-        const topAgent = agentSalesData.length > 0 ? agentSalesData.reduce((prev, current) => (prev.sales >= current.sales) ? prev : current) : { name: 'N/A', sales: 0 };
-        return { totalApplications, totalInstalledDelivered, totalOnTheWayReady, totalRejected, commissionOnRequest, totalAgentCommissions, grossIncome, totalExpenses, totalAdminCommissions, topAgent: topAgent.sales > 0 ? topAgent : { name: 'N/A' }, netProfit };
+        
+        const agentSales = agents.map(name => ({ name, sales: installedSubs.filter(s => s.agent === name).length }));
+        const topAgent = agentSales.reduce((prev, curr) => (prev.sales > curr.sales ? prev : curr), { name: 'N/A', sales: 0 });
+
+        return { totalApplications, totalInstalledDelivered, totalOnTheWayReady, totalRejected, commissionOnRequest, totalAgentCommissions, grossIncome, totalExpenses, totalAdminCommissions, topAgent, netProfit };
     }, [subscribers, expenses, agents, fromMonth, fromYear, toMonth, toYear, currentUser.role]);
-    
-    const paginatedTransactionsData = useMemo(() => {
-        const sorted = [...subscribers].sort((a, b) => (b.dateOfApplication ? new Date(b.dateOfApplication).getTime() : 0) - (a.dateOfApplication ? new Date(a.dateOfApplication).getTime() : 0));
-        const totalPages = Math.ceil(sorted.length / itemsPerPage);
-        return { items: sorted.slice((latestTransactionsCurrentPage - 1) * itemsPerPage, latestTransactionsCurrentPage * itemsPerPage), totalPages };
-    }, [subscribers, latestTransactionsCurrentPage]);
-    
-    const paginatedAgentTransactionsData = useMemo(() => {
-        const sorted = [...visibleSubscribers].sort((a, b) => (b.dateOfApplication ? new Date(b.dateOfApplication).getTime() : 0) - (a.dateOfApplication ? new Date(a.dateOfApplication).getTime() : 0));
-        const totalPages = Math.ceil(sorted.length / itemsPerPage);
-        return { items: sorted.slice((agentTransactionsCurrentPage - 1) * itemsPerPage, agentTransactionsCurrentPage * itemsPerPage), totalPages };
-    }, [visibleSubscribers, agentTransactionsCurrentPage]);
 
     const agentPerformance = useMemo(() => {
         if (currentUser.role !== 'agent') return null;
         const totalSubscribers = visibleSubscribers.length;
-        const totalInstalled = visibleSubscribers.filter(sub => ['Installed', 'Delivered'].includes(sub.status)).length;
+        const installed = visibleSubscribers.filter(sub => ['Installed', 'Delivered'].includes(sub.status));
+        const totalInstalled = installed.length;
         const totalOnTheWayReady = visibleSubscribers.filter(sub => ['On the Way', 'Ready for Installation'].includes(sub.status)).length;
         const totalRejectedCancelled = visibleSubscribers.filter(sub => ['Rejected', 'Canceled'].includes(sub.status)).length;
-        const installedSubscribers = visibleSubscribers.filter(sub => ['Installed', 'Delivered'].includes(sub.status));
-        const pendingPayouts = installedSubscribers.filter(sub => (sub.payoutStatus || 'PENDING') === 'PENDING').length;
-        const onRequestPayouts = installedSubscribers.filter(sub => sub.payoutStatus === 'ON REQUEST').length;
-        const completedPayoutsData = installedSubscribers.filter(sub => sub.payoutStatus === 'PAID');
-        const completedPayouts = completedPayoutsData.length;
-        const totalCompletedCommission = completedPayoutsData.reduce((sum, sub) => sum + calculateCommission(sub), 0);
-        const currentMonth = new Date().getMonth();
-        const currentYear = new Date().getFullYear();
-        const applicationsThisMonth = visibleSubscribers.filter(sub => {
+        const pendingPayouts = installed.filter(sub => (sub.payoutStatus || 'PENDING') === 'PENDING').length;
+        const onRequestPayouts = installed.filter(sub => sub.payoutStatus === 'ON REQUEST').length;
+        const paidSubs = installed.filter(sub => sub.payoutStatus === 'PAID');
+        const completedPayouts = paidSubs.length;
+        const totalCompletedCommission = paidSubs.reduce((sum, sub) => sum + calculateCommission(sub), 0);
+        
+        const now = new Date();
+        const thisMonthApps = visibleSubscribers.filter(sub => {
             if (!sub.dateOfApplication) return false;
-            const appDate = new Date(sub.dateOfApplication);
-            return appDate.getFullYear() === currentYear && appDate.getMonth() === currentMonth;
+            const d = new Date(sub.dateOfApplication);
+            return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
         });
-        const installedFromThisMonthApps = applicationsThisMonth.filter(sub => ['Installed', 'Delivered'].includes(sub.status)).length;
-        const conversionRate = applicationsThisMonth.length > 0 ? (installedFromThisMonthApps / applicationsThisMonth.length) * 100 : 0;
+        const installedThisMonth = thisMonthApps.filter(sub => ['Installed', 'Delivered'].includes(sub.status)).length;
+        const conversionRate = thisMonthApps.length > 0 ? (installedThisMonth / thisMonthApps.length) * 100 : 0;
+        
         return { totalSubscribers, totalInstalled, totalOnTheWayReady, totalRejectedCancelled, pendingPayouts, onRequestPayouts, completedPayouts, totalCompletedCommission, conversionRate };
     }, [visibleSubscribers, currentUser.role]);
 
     const chartData = useMemo(() => {
         const now = new Date();
-        const data = { labels: [], commissions: [], expenses: [] };
-        const parseDate = (dateStr) => (dateStr && !isNaN(new Date(dateStr).getTime())) ? new Date(dateStr) : null;
+        const labels = [], commissions = [], expenseData = [];
+        
+        const getCommission = (subs, startDate, endDate) => subs.filter(s => {
+            const d = new Date(s.activationDate);
+            return ['Installed', 'Delivered'].includes(s.status) && d >= startDate && d <= endDate;
+        }).reduce((sum, s) => sum + calculateCommission(s), 0);
+        
+        const getExpense = (exps, startDate, endDate) => exps.filter(e => {
+            const d = new Date(e.date);
+            return d >= startDate && d <= endDate;
+        }).reduce((sum, e) => sum + e.amount, 0);
 
         if (activeTab === 'Monthly') {
             for (let i = 11; i >= 0; i--) {
-                const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-                const month = date.getMonth();
-                const year = date.getFullYear();
-                const monthlyCommissions = visibleSubscribers.filter(s => {
-                    const actDate = parseDate(s.activationDate);
-                    return ['Installed', 'Delivered'].includes(s.status) && actDate && actDate.getMonth() === month && actDate.getFullYear() === year;
-                }).reduce((sum, s) => sum + calculateCommission(s), 0);
-                data.labels.push(date.toLocaleString('default', { month: 'short' }));
-                data.commissions.push(monthlyCommissions);
-                if (currentUser.role === 'admin') {
-                    const monthlyExpenses = expenses.filter(e => {
-                        const expDate = parseDate(e.date);
-                        return expDate && expDate.getMonth() === month && expDate.getFullYear() === year;
-                    }).reduce((sum, e) => sum + e.amount, 0);
-                    data.expenses.push(monthlyExpenses);
-                }
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                const start = new Date(d.getFullYear(), d.getMonth(), 1);
+                const end = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59);
+                labels.push(d.toLocaleString('default', { month: 'short' }));
+                commissions.push(getCommission(visibleSubscribers, start, end));
+                if (currentUser.role === 'admin') expenseData.push(getExpense(expenses, start, end));
             }
         } else if (activeTab === 'Weekly') {
             for (let i = 11; i >= 0; i--) {
-                const weekStartDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay() - (i * 7));
-                weekStartDate.setHours(0, 0, 0, 0);
-                const weekEndDate = new Date(weekStartDate);
-                weekEndDate.setDate(weekEndDate.getDate() + 6);
-                weekEndDate.setHours(23, 59, 59, 999);
-                const weeklyCommissions = visibleSubscribers.filter(s => {
-                    const actDate = parseDate(s.activationDate);
-                    return ['Installed', 'Delivered'].includes(s.status) && actDate && actDate >= weekStartDate && actDate <= weekEndDate;
-                }).reduce((sum, s) => sum + calculateCommission(s), 0);
-                data.labels.push(`${weekStartDate.getMonth()+1}/${weekStartDate.getDate()}`);
-                data.commissions.push(weeklyCommissions);
-                if (currentUser.role === 'admin') {
-                     const weeklyExpenses = expenses.filter(e => {
-                        const expDate = parseDate(e.date);
-                        return expDate && expDate >= weekStartDate && expDate <= weekEndDate;
-                    }).reduce((sum, e) => sum + e.amount, 0);
-                    data.expenses.push(weeklyExpenses);
-                }
+                const start = new Date(now);
+                start.setDate(now.getDate() - (i * 7) - now.getDay());
+                start.setHours(0,0,0,0);
+                const end = new Date(start);
+                end.setDate(start.getDate() + 6);
+                end.setHours(23,59,59,999);
+                labels.push(`${start.getMonth()+1}/${start.getDate()}`);
+                commissions.push(getCommission(visibleSubscribers, start, end));
+                if (currentUser.role === 'admin') expenseData.push(getExpense(expenses, start, end));
             }
-        } else if (activeTab === 'Daily') {
+        } else { // Daily
              for (let i = 29; i >= 0; i--) {
-                const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-                const yyyymmdd = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-                const dailyCommissions = visibleSubscribers.filter(s => ['Installed', 'Delivered'].includes(s.status) && s.activationDate === yyyymmdd).reduce((sum, s) => sum + calculateCommission(s), 0);
-                data.labels.push(`${date.getMonth()+1}/${date.getDate()}`);
-                data.commissions.push(dailyCommissions);
-                if (currentUser.role === 'admin') {
-                    const dailyExpenses = expenses.filter(e => e.date === yyyymmdd).reduce((sum, e) => sum + e.amount, 0);
-                    data.expenses.push(dailyExpenses);
-                }
+                const d = new Date(now);
+                d.setDate(now.getDate() - i);
+                const start = new Date(d.setHours(0,0,0,0));
+                const end = new Date(d.setHours(23,59,59,999));
+                labels.push(`${d.getMonth()+1}/${d.getDate()}`);
+                commissions.push(getCommission(visibleSubscribers, start, end));
+                if (currentUser.role === 'admin') expenseData.push(getExpense(expenses, start, end));
             }
         }
-        return data;
+        return { labels, commissions, expenseData };
     }, [visibleSubscribers, expenses, activeTab, currentUser.role]);
     
-    const chartDatasets = [{ name: 'Commissions', data: chartData.commissions, color: 'var(--primary-brand)' }];
-    if (currentUser.role === 'admin') chartDatasets.push({ name: 'Expenses', data: chartData.expenses, color: 'var(--accent-red)' });
-    
+    const paginatedData = useMemo(() => {
+        const sorted = [...visibleSubscribers].sort((a, b) => new Date(b.dateOfApplication || 0).getTime() - new Date(a.dateOfApplication || 0).getTime());
+        return {
+            items: sorted.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage),
+            totalPages: Math.ceil(sorted.length / itemsPerPage)
+        };
+    }, [visibleSubscribers, currentPage]);
+
     return (
         <div>
             <h1>Overview</h1>
@@ -545,13 +490,13 @@ const Overview = ({ subscribers, expenses, agents, currentUser }) => {
                         <KpiCard title="Total Applications" value={adminDashboardData.totalApplications} icon="totalApplications" colorClass="bg-blue" />
                         <KpiCard title="Total Installed/Delivered" value={adminDashboardData.totalInstalledDelivered} icon="installedDelivered" colorClass="bg-blue" />
                         <KpiCard title="On the Way / Ready" value={adminDashboardData.totalOnTheWayReady} icon="onTheWayReady" colorClass="bg-blue" />
-                        <KpiCard title="Rejected Applications" value={adminDashboardData.totalRejected} icon="rejectedApplications" colorClass="bg-red" />
+                        <KpiCard title="Rejected" value={adminDashboardData.totalRejected} icon="rejectedApplications" colorClass="bg-red" />
                         <KpiCard title="Commission on Request" value={adminDashboardData.commissionOnRequest} icon="commissionRequest" colorClass="bg-orange" currency />
-                        <KpiCard title="Total Agent Commissions" value={adminDashboardData.totalAgentCommissions} icon="agentCommissions" colorClass="bg-orange" currency />
+                        <KpiCard title="Agent Commissions" value={adminDashboardData.totalAgentCommissions} icon="agentCommissions" colorClass="bg-orange" currency />
                         <KpiCard title="Gross Income" value={adminDashboardData.grossIncome} icon="grossIncome" colorClass="bg-green" currency />
                         <KpiCard title="Total Expenses" value={adminDashboardData.totalExpenses} icon="totalExpenses" colorClass="bg-red" currency />
                         <KpiCard title="Admin Commission" value={adminDashboardData.totalAdminCommissions} icon="adminCommission" colorClass="bg-green" currency />
-                        <KpiCard title="Top Performing Agent" value={adminDashboardData.topAgent.name} icon="topAgent" colorClass="bg-blue" />
+                        <KpiCard title="Top Agent" value={adminDashboardData.topAgent.name} icon="topAgent" colorClass="bg-blue" />
                         <KpiCard title="Net Profit" value={adminDashboardData.netProfit} icon="netProfit" colorClass="bg-green" currency valueColor={adminDashboardData.netProfit >= 0 ? 'white' : 'var(--accent-red)'} />
                     </div>
                 </>
@@ -564,20 +509,25 @@ const Overview = ({ subscribers, expenses, agents, currentUser }) => {
                     <button className={activeTab === 'Weekly' ? 'active' : ''} onClick={() => setActiveTab('Weekly')}>Weekly</button>
                     <button className={activeTab === 'Monthly' ? 'active' : ''} onClick={() => setActiveTab('Monthly')}>Monthly</button>
                 </div>
-                <LineChart labels={chartData.labels} datasets={chartDatasets} />
+                <LineChart 
+                    labels={chartData.labels} 
+                    datasets={[
+                        { name: 'Commissions', data: chartData.commissions, color: 'var(--primary-brand)' },
+                        ...(currentUser.role === 'admin' ? [{ name: 'Expenses', data: chartData.expenseData, color: 'var(--accent-red)' }] : [])
+                    ]} 
+                />
             </div>
 
             <div className="card" style={{ marginTop: '2rem' }}>
                 <h2>Latest Transactions</h2>
-                <div className="table-responsive-wrapper" style={{marginTop: '1rem'}}>
+                <div className="table-responsive-wrapper">
                     <table className="data-table">
-                        <thead><tr><th>Date</th><th>Subscriber Name</th><th>Address</th><th>Application No</th><th>Subscriber No</th>{currentUser.role === 'admin' && <th>Agent</th>}<th>Status</th><th>Payout Status</th></tr></thead>
+                        <thead><tr><th>Date</th><th>Name</th><th>App No</th><th>Sub No</th>{currentUser.role === 'admin' && <th>Agent</th>}<th>Status</th><th>Payout</th></tr></thead>
                         <tbody>
-                            {(currentUser.role === 'admin' ? paginatedTransactionsData.items : paginatedAgentTransactionsData.items).map(sub => (
+                            {paginatedData.items.map(sub => (
                                 <tr key={sub.id}>
                                     <td>{formatDate(sub.dateOfApplication)}</td>
                                     <td>{sub.name}</td>
-                                    <td>{sub.address}</td>
                                     <td>{sub.applicationNo}</td>
                                     <td>{sub.subscriberNo}</td>
                                     {currentUser.role === 'admin' && <td>{sub.agent}</td>}
@@ -588,7 +538,7 @@ const Overview = ({ subscribers, expenses, agents, currentUser }) => {
                         </tbody>
                     </table>
                 </div>
-                <Pagination currentPage={currentUser.role === 'admin' ? latestTransactionsCurrentPage : agentTransactionsCurrentPage} totalPages={currentUser.role === 'admin' ? paginatedTransactionsData.totalPages : paginatedAgentTransactionsData.totalPages} onPageChange={currentUser.role === 'admin' ? setLatestTransactionsCurrentPage : setAgentTransactionsCurrentPage} />
+                <Pagination currentPage={currentPage} totalPages={paginatedData.totalPages} onPageChange={setCurrentPage} />
             </div>
         </div>
     );
@@ -599,14 +549,14 @@ const SubscriberModal = ({ isOpen, onClose, onSave, subscriber, agents, currentU
         dateOfApplication: new Date().toISOString().split('T')[0],
         name: '', address: '', applicationNo: '', subscriberNo: '',
         agent: currentUser.role === 'agent' ? currentUser.name : (agents[0] || ''),
-        status: 'Under Review', payoutStatus: 'PENDING', activationDate: '', reason: '',
+        status: 'Under Review', payoutStatus: 'PENDING', activationDate: '', reason: '', plan: residentialPlans[0]
     };
     const [formData, setFormData] = useState(initialFormState);
 
     useEffect(() => {
         if (subscriber) setFormData({ ...initialFormState, ...subscriber, payoutStatus: subscriber.payoutStatus || 'PENDING' });
         else setFormData(initialFormState);
-    }, [subscriber, isOpen, agents, currentUser]);
+    }, [subscriber, isOpen]);
 
     if (!isOpen) return null;
 
@@ -615,7 +565,6 @@ const SubscriberModal = ({ isOpen, onClose, onSave, subscriber, agents, currentU
         setFormData(prev => {
             const newState = { ...prev, [name]: value };
             if (name === 'status' && ['Installed', 'Delivered'].includes(value) && !prev.activationDate) newState.activationDate = new Date().toISOString().split('T')[0];
-            if (name === 'status' && value !== 'Canceled' && value !== 'Rejected') newState.reason = '';
             return newState;
         });
     };
@@ -623,23 +572,23 @@ const SubscriberModal = ({ isOpen, onClose, onSave, subscriber, agents, currentU
     return (
         <div className="modal-backdrop">
             <div className="modal-content">
-                <h2>{subscriber ? 'Edit Subscriber' : 'Add New Residential or Corporate Subscriber'}</h2>
+                <h2>{subscriber ? 'Edit Subscriber' : 'Add New Subscriber'}</h2>
                 <form onSubmit={(e) => { e.preventDefault(); onSave(formData); }}>
-                    <div className="form-group"><label htmlFor="dateOfApplication">Date</label><input type="date" id="dateOfApplication" name="dateOfApplication" className="form-control" value={formData.dateOfApplication} onChange={handleChange} required disabled={!!subscriber} /></div>
-                    <div className="form-group"><label htmlFor="name">Subscriber Name</label><input type="text" id="name" name="name" className="form-control" value={formData.name} onChange={handleChange} required /></div>
-                     <div className="form-group"><label htmlFor="address">Address</label><input type="text" id="address" name="address" className="form-control" value={formData.address} onChange={handleChange} /></div>
-                     <div className="form-group"><label htmlFor="applicationNo">Application No</label><input type="text" id="applicationNo" name="applicationNo" className="form-control" value={formData.applicationNo} onChange={handleChange} /></div>
-                     <div className="form-group"><label htmlFor="subscriberNo">Subscriber No</label><input type="text" id="subscriberNo" name="subscriberNo" className="form-control" value={formData.subscriberNo} onChange={handleChange} /></div>
+                    <div className="form-group"><label>Date</label><input type="date" name="dateOfApplication" className="form-control" value={formData.dateOfApplication} onChange={handleChange} required disabled={!!subscriber} /></div>
+                    <div className="form-group"><label>Name</label><input type="text" name="name" className="form-control" value={formData.name} onChange={handleChange} required /></div>
+                     <div className="form-group"><label>Address</label><input type="text" name="address" className="form-control" value={formData.address} onChange={handleChange} /></div>
+                     <div className="form-group"><label>App No</label><input type="text" name="applicationNo" className="form-control" value={formData.applicationNo} onChange={handleChange} /></div>
+                     <div className="form-group"><label>Sub No</label><input type="text" name="subscriberNo" className="form-control" value={formData.subscriberNo} onChange={handleChange} /></div>
                     <div className="form-group">
-                        <label htmlFor="agent">Agent Process</label>
-                        <select id="agent" name="agent" className="form-control" value={formData.agent} onChange={handleChange} required disabled={currentUser.role === 'agent'}>
+                        <label>Agent</label>
+                        <select name="agent" className="form-control" value={formData.agent} onChange={handleChange} required disabled={currentUser.role === 'agent'}>
                             {agents.map(agent => <option key={agent} value={agent}>{agent}</option>)}
                         </select>
                     </div>
-                    <div className="form-group"><label htmlFor="status">Status</label><select id="status" name="status" className="form-control" value={formData.status} onChange={handleChange} required>{subscriberStatuses.map(status => <option key={status} value={status}>{status}</option>)}</select></div>
+                    <div className="form-group"><label>Status</label><select name="status" className="form-control" value={formData.status} onChange={handleChange} required>{subscriberStatuses.map(status => <option key={status} value={status}>{status}</option>)}</select></div>
                     <div className="form-group">
-                        <label htmlFor="payoutStatus">Payout Status</label>
-                        <select id="payoutStatus" name="payoutStatus" className="form-control" value={formData.payoutStatus} onChange={handleChange} required disabled={currentUser.role === 'agent' || !['Installed', 'Delivered'].includes(formData.status)}>{payoutStatuses.map(status => <option key={status} value={status}>{status}</option>)}</select>
+                        <label>Payout Status</label>
+                        <select name="payoutStatus" className="form-control" value={formData.payoutStatus} onChange={handleChange} required disabled={currentUser.role === 'agent' || !['Installed', 'Delivered'].includes(formData.status)}>{payoutStatuses.map(status => <option key={status} value={status}>{status}</option>)}</select>
                     </div>
                     <div className="modal-actions"><button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button><button type="submit" className="btn btn-primary">Save</button></div>
                 </form>
@@ -664,30 +613,27 @@ const Subscribers = ({ subscribers, onSave, onDelete, agents, currentUser }) => 
     }, [subscribers, currentUser]);
 
     const filteredSubscribers = useMemo(() => visibleSubscribers.filter(sub => {
-        const lowercasedTerm = searchTerm.toLowerCase().trim();
-        const matchesSearch = !lowercasedTerm || (sub.name?.toLowerCase().includes(lowercasedTerm)) || (String(sub.applicationNo || '').toLowerCase().includes(lowercasedTerm)) || (String(sub.subscriberNo || '').toLowerCase().includes(lowercasedTerm));
+        const term = searchTerm.toLowerCase().trim();
+        const matchesSearch = !term || (sub.name?.toLowerCase().includes(term)) || (String(sub.applicationNo || '').toLowerCase().includes(term)) || (String(sub.subscriberNo || '').toLowerCase().includes(term));
         const matchesStatus = filterStatus === 'All' || sub.status === filterStatus;
         const matchesPayoutStatus = filterPayoutStatus === 'All' || (sub.payoutStatus || 'PENDING') === filterPayoutStatus;
         return matchesSearch && matchesStatus && matchesPayoutStatus;
-    }).sort((a, b) => (b.dateOfApplication ? new Date(b.dateOfApplication).getTime() : 0) - (a.dateOfApplication ? new Date(a.dateOfApplication).getTime() : 0)), [searchTerm, filterStatus, filterPayoutStatus, visibleSubscribers]);
-    
-    const openModal = (subscriber = null) => { setEditingSubscriber(subscriber); setIsModalOpen(true); };
-    const closeModal = () => { setIsModalOpen(false); setEditingSubscriber(null); };
-    const handleSave = (subscriberData) => { onSave(subscriberData); closeModal(); };
-    const handleDelete = (id) => { if (window.confirm('Are you sure you want to delete this subscriber?')) onDelete(id); };
+    }).sort((a, b) => new Date(b.dateOfApplication || 0).getTime() - new Date(a.dateOfApplication || 0).getTime()), [searchTerm, filterStatus, filterPayoutStatus, visibleSubscribers]);
+
+    const handleSave = (data) => { onSave(data); setIsModalOpen(false); setEditingSubscriber(null); };
 
     return (
         <div>
-            <div className="page-header"><h1>Subscribers</h1><button className="btn btn-primary" onClick={() => openModal()}>New Subscriber</button></div>
+            <div className="page-header"><h1>Subscribers</h1><button className="btn btn-primary" onClick={() => { setEditingSubscriber(null); setIsModalOpen(true); }}>New Subscriber</button></div>
             <div className="card">
-                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem', alignItems: 'center' }}>
-                    <input type="text" placeholder="Search by Name, Application No, or Subscriber No..." className="form-control" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{flex: '1', minWidth: '250px'}} />
-                    <select className="form-control" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} style={{width: 'auto', minWidth: '150px'}}><option value="All">All Statuses</option>{subscriberStatuses.map(status => <option key={status} value={status}>{status}</option>)}</select>
-                    <select className="form-control" value={filterPayoutStatus} onChange={(e) => setFilterPayoutStatus(e.target.value)} style={{width: 'auto', minWidth: '180px'}}><option value="All">All Payout Statuses</option>{payoutStatuses.map(status => <option key={status} value={status}>{status}</option>)}</select>
+                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+                    <input type="text" placeholder="Search..." className="form-control" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{flex: '1', minWidth: '200px'}} />
+                    <select className="form-control" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} style={{width: 'auto'}}><option value="All">All Statuses</option>{subscriberStatuses.map(s => <option key={s} value={s}>{s}</option>)}</select>
+                    <select className="form-control" value={filterPayoutStatus} onChange={(e) => setFilterPayoutStatus(e.target.value)} style={{width: 'auto'}}><option value="All">All Payouts</option>{payoutStatuses.map(s => <option key={s} value={s}>{s}</option>)}</select>
                 </div>
                 <div className="table-responsive-wrapper">
                     <table className="data-table">
-                        <thead><tr><th>Date</th><th>Subscriber Name</th><th>Address</th><th>Application No</th><th>Subscriber No</th><th>Agent Process</th><th>Status</th><th>Payout Status</th><th>Actions</th></tr></thead>
+                        <thead><tr><th>Date</th><th>Name</th><th>Address</th><th>App No</th><th>Sub No</th><th>Agent</th><th>Status</th><th>Payout</th><th>Actions</th></tr></thead>
                         <tbody>
                             {filteredSubscribers.map(sub => (
                                 <tr key={sub.id}>
@@ -701,8 +647,8 @@ const Subscribers = ({ subscribers, onSave, onDelete, agents, currentUser }) => 
                                     <td><span className="status-badge" style={payoutStatusBadgeStyle(sub.payoutStatus || 'PENDING')}>{sub.payoutStatus || 'PENDING'}</span></td>
                                     <td>
                                         <div style={{ display: 'flex', gap: '0.25rem' }}>
-                                            <button className="btn-icon" onClick={() => openModal(sub)} aria-label={`Edit ${sub.name}`}><Icon path="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" /></button>
-                                            <button className="btn-icon btn-icon-danger" onClick={() => handleDelete(sub.id)} aria-label={`Delete ${sub.name}`}><Icon path="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" /></button>
+                                            <button className="btn-icon" onClick={() => { setEditingSubscriber(sub); setIsModalOpen(true); }}><Icon path="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" /></button>
+                                            <button className="btn-icon btn-icon-danger" onClick={() => { if(window.confirm('Delete?')) onDelete(sub.id); }}><Icon path="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" /></button>
                                         </div>
                                     </td>
                                 </tr>
@@ -711,36 +657,31 @@ const Subscribers = ({ subscribers, onSave, onDelete, agents, currentUser }) => 
                     </table>
                 </div>
             </div>
-            <SubscriberModal isOpen={isModalOpen} onClose={closeModal} onSave={handleSave} subscriber={editingSubscriber} agents={agents} currentUser={currentUser} />
+            <SubscriberModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSave} subscriber={editingSubscriber} agents={agents} currentUser={currentUser} />
         </div>
     );
 };
 
 const MyPerformance = ({ subscribers, currentUser }) => {
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth() + 1;
-    const [selectedMonth, setSelectedMonth] = useState(currentMonth);
-    const [selectedYear, setSelectedYear] = useState(currentYear);
+    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
-    const performanceData = useMemo(() => {
-        const agentSubs = subscribers.filter(sub => {
-            if (!sub.dateOfApplication) return false;
-            let matchesAgent = false;
-            if (currentUser.name === 'Jackie - Boosting') matchesAgent = sub.agent === 'Jackie - Boosting' || sub.agent === 'Jackie - Personal';
-            else matchesAgent = sub.agent === currentUser.name;
-            if (!matchesAgent) return false;
-            const appDate = new Date(sub.dateOfApplication);
-            return appDate.getFullYear() === selectedYear && (appDate.getMonth() + 1) === selectedMonth;
+    const data = useMemo(() => {
+        const subs = subscribers.filter(s => {
+            const d = new Date(s.dateOfApplication);
+            const isAgent = currentUser.name === 'Jackie - Boosting' ? (s.agent === 'Jackie - Boosting' || s.agent === 'Jackie - Personal') : s.agent === currentUser.name;
+            return isAgent && d.getFullYear() === selectedYear && (d.getMonth() + 1) === selectedMonth;
         });
-
-        const totalApplications = agentSubs.length;
-        const installedSales = agentSubs.filter(sub => ['Installed', 'Delivered'].includes(sub.status)).length;
-        const pending = agentSubs.filter(sub => ['Under Review', 'For Scheduling', 'Ready for Installation', 'APPROVED', 'On the Way'].includes(sub.status)).length;
-        const cancelledOrRejected = agentSubs.filter(sub => ['Canceled', 'Rejected'].includes(sub.status)).length;
-        const totalCommission = agentSubs.filter(sub => ['Installed', 'Delivered'].includes(sub.status)).reduce((sum, sub) => sum + calculateCommission(sub), 0);
-        const conversionRate = totalApplications > 0 ? (installedSales / totalApplications) * 100 : 0;
-        return { totalApplications, installedSales, pending, cancelledOrRejected, conversionRate, totalCommission };
-    }, [subscribers, currentUser.name, selectedMonth, selectedYear]);
+        const installed = subs.filter(s => ['Installed', 'Delivered'].includes(s.status));
+        return {
+            total: subs.length,
+            installed: installed.length,
+            pending: subs.filter(s => ['Under Review', 'For Scheduling', 'Ready for Installation', 'On the Way'].includes(s.status)).length,
+            rejected: subs.filter(s => ['Canceled', 'Rejected'].includes(s.status)).length,
+            commission: installed.reduce((acc, s) => acc + calculateCommission(s), 0),
+            conversion: subs.length ? (installed.length / subs.length) * 100 : 0
+        };
+    }, [subscribers, selectedMonth, selectedYear, currentUser]);
 
     return (
         <div>
@@ -752,58 +693,39 @@ const MyPerformance = ({ subscribers, currentUser }) => {
                 </div>
             </div>
             <div className="card-grid" style={{ marginTop: '2rem' }}>
-                <div className="stat-card"><div className="stat-value">{performanceData.installedSales}</div><div className="stat-label">Installed Sales</div></div>
-                <div className="stat-card"><div className="stat-value">{performanceData.totalApplications}</div><div className="stat-label">Total Applications</div></div>
-                <div className="stat-card"><div className="stat-value">{performanceData.conversionRate.toFixed(1)}%</div><div className="stat-label">Conversion Rate</div></div>
-                <div className="stat-card"><div className="stat-value">{performanceData.pending}</div><div className="stat-label">Pending</div></div>
-                <div className="stat-card"><div className="stat-value">{performanceData.cancelledOrRejected}</div><div className="stat-label">Cancelled / Rejected</div></div>
-                <div className="stat-card"><div className="stat-value">₱{performanceData.totalCommission.toLocaleString()}</div><div className="stat-label">Commission Earned</div></div>
+                <div className="stat-card"><div className="stat-value">{data.installed}</div><div className="stat-label">Installed Sales</div></div>
+                <div className="stat-card"><div className="stat-value">{data.total}</div><div className="stat-label">Total Applications</div></div>
+                <div className="stat-card"><div className="stat-value">{data.conversion.toFixed(1)}%</div><div className="stat-label">Conversion Rate</div></div>
+                <div className="stat-card"><div className="stat-value">{data.pending}</div><div className="stat-label">Pending</div></div>
+                <div className="stat-card"><div className="stat-value">{data.rejected}</div><div className="stat-label">Cancelled / Rejected</div></div>
+                <div className="stat-card"><div className="stat-value">₱{data.commission.toLocaleString()}</div><div className="stat-label">Commission Earned</div></div>
             </div>
         </div>
     );
 };
 
 const AgentPerformance = ({ subscribers, agents }) => {
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth() + 1;
-    const [selectedMonth, setSelectedMonth] = useState(currentMonth);
-    const [selectedYear, setSelectedYear] = useState(currentYear);
-    const [sortConfig, setSortConfig] = useState({ key: 'installedSales', direction: 'descending' });
+    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+    const [sortKey, setSortKey] = useState('installed');
 
-    const performanceData = useMemo(() => {
-        return agents.map(agentName => {
-            const agentSubs = subscribers.filter(sub => {
-                if (!sub.dateOfApplication) return false;
-                const appDate = new Date(sub.dateOfApplication);
-                return sub.agent === agentName && appDate.getFullYear() === selectedYear && (appDate.getMonth() + 1) === selectedMonth;
+    const data = useMemo(() => {
+        return agents.map(agent => {
+            const subs = subscribers.filter(s => {
+                const d = new Date(s.dateOfApplication);
+                return s.agent === agent && d.getFullYear() === selectedYear && (d.getMonth() + 1) === selectedMonth;
             });
-            const totalApplications = agentSubs.length;
-            const installedSales = agentSubs.filter(sub => ['Installed', 'Delivered'].includes(sub.status)).length;
-            const pending = agentSubs.filter(sub => ['Under Review', 'For Scheduling', 'Ready for Installation', 'APPROVED', 'On the Way'].includes(sub.status)).length;
-            const cancelledOrRejected = agentSubs.filter(sub => ['Canceled', 'Rejected'].includes(sub.status)).length;
-            const totalCommission = agentSubs.filter(sub => ['Installed', 'Delivered'].includes(sub.status)).reduce((sum, sub) => sum + calculateCommission(sub), 0);
-            const conversionRate = totalApplications > 0 ? (installedSales / totalApplications) * 100 : 0;
-            return { name: agentName, totalApplications, installedSales, pending, cancelledOrRejected, conversionRate, totalCommission };
-        });
-    }, [subscribers, agents, selectedMonth, selectedYear]);
-
-    const sortedPerformanceData = useMemo(() => {
-        let sortableItems = [...performanceData];
-        if (sortConfig.key) {
-            sortableItems.sort((a, b) => {
-                if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'ascending' ? -1 : 1;
-                if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'ascending' ? 1 : -1;
-                return 0;
-            });
-        }
-        return sortableItems;
-    }, [performanceData, sortConfig]);
-
-    const requestSort = (key) => {
-        let direction = 'ascending';
-        if (sortConfig.key === key && sortConfig.direction === 'ascending') direction = 'descending';
-        setSortConfig({ key, direction });
-    };
+            const installed = subs.filter(s => ['Installed', 'Delivered'].includes(s.status)).length;
+            const total = subs.length;
+            return {
+                name: agent,
+                total,
+                installed,
+                conversion: total ? (installed / total) * 100 : 0,
+                commission: subs.filter(s => ['Installed', 'Delivered'].includes(s.status)).reduce((acc, s) => acc + calculateCommission(s), 0)
+            };
+        }).sort((a, b) => b[sortKey] - a[sortKey]);
+    }, [subscribers, agents, selectedMonth, selectedYear, sortKey]);
 
     return (
         <div>
@@ -816,17 +738,15 @@ const AgentPerformance = ({ subscribers, agents }) => {
                 <div className="table-responsive-wrapper">
                     <table className="data-table">
                         <thead><tr>
-                                <th style={{cursor: 'pointer'}} onClick={() => requestSort('name')}>Agent</th>
-                                <th style={{cursor: 'pointer'}} onClick={() => requestSort('installedSales')}>Installed</th>
-                                <th style={{cursor: 'pointer'}} onClick={() => requestSort('totalApplications')}>Total Apps</th>
-                                <th style={{cursor: 'pointer'}} onClick={() => requestSort('conversionRate')}>Conv. Rate</th>
-                                <th style={{cursor: 'pointer'}} onClick={() => requestSort('pending')}>Pending</th>
-                                <th style={{cursor: 'pointer'}} onClick={() => requestSort('cancelledOrRejected')}>Canc/Rej</th>
-                                <th style={{cursor: 'pointer'}} onClick={() => requestSort('totalCommission')}>Comm. Earned</th>
-                            </tr></thead>
+                            <th onClick={() => setSortKey('name')} style={{cursor: 'pointer'}}>Agent</th>
+                            <th onClick={() => setSortKey('installed')} style={{cursor: 'pointer'}}>Installed</th>
+                            <th onClick={() => setSortKey('total')} style={{cursor: 'pointer'}}>Total Apps</th>
+                            <th onClick={() => setSortKey('conversion')} style={{cursor: 'pointer'}}>Conv. Rate</th>
+                            <th onClick={() => setSortKey('commission')} style={{cursor: 'pointer'}}>Comm. Earned</th>
+                        </tr></thead>
                         <tbody>
-                            {sortedPerformanceData.map(agent => (
-                                <tr key={agent.name}><td>{agent.name}</td><td style={{fontWeight: 600, color: 'var(--primary-brand)'}}>{agent.installedSales}</td><td>{agent.totalApplications}</td><td>{agent.conversionRate.toFixed(1)}%</td><td>{agent.pending}</td><td>{agent.cancelledOrRejected}</td><td>₱{agent.totalCommission.toLocaleString()}</td></tr>
+                            {data.map(d => (
+                                <tr key={d.name}><td>{d.name}</td><td style={{fontWeight: 'bold', color: 'var(--primary-brand)'}}>{d.installed}</td><td>{d.total}</td><td>{d.conversion.toFixed(1)}%</td><td>₱{d.commission.toLocaleString()}</td></tr>
                             ))}
                         </tbody>
                     </table>
@@ -837,55 +757,45 @@ const AgentPerformance = ({ subscribers, agents }) => {
 };
 
 const PayoutReports = ({ subscribers, agents, currentUser, onSaveSubscriber }) => {
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth() + 1;
-    const [selectedMonth, setSelectedMonth] = useState(currentMonth);
-    const [selectedYear, setSelectedYear] = useState(currentYear);
+    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
     const [selectedAgent, setSelectedAgent] = useState(currentUser.role === 'admin' ? 'All' : currentUser.name);
 
     const reportData = useMemo(() => {
         return subscribers.filter(sub => {
             if (!sub.activationDate) return false;
-            const activationDate = new Date(sub.activationDate);
-            const isSuccessful = ['Installed', 'Delivered'].includes(sub.status);
-            let matchesAgent;
-            if (currentUser.role === 'admin') matchesAgent = (selectedAgent === 'All' || sub.agent === selectedAgent);
-            else { 
-                if (currentUser.name === 'Jackie - Boosting') matchesAgent = sub.agent === 'Jackie - Boosting' || sub.agent === 'Jackie - Personal';
-                else matchesAgent = sub.agent === currentUser.name;
-            }
-            const matchesDate = activationDate.getFullYear() === selectedYear && (activationDate.getMonth() + 1) === selectedMonth;
-            return isSuccessful && matchesAgent && matchesDate;
-        }).map(sub => ({ ...sub, commission: calculateCommission(sub) }));
+            const d = new Date(sub.activationDate);
+            const isSuccess = ['Installed', 'Delivered'].includes(sub.status);
+            const isAgent = currentUser.role === 'admin' ? (selectedAgent === 'All' || sub.agent === selectedAgent) : (currentUser.name === 'Jackie - Boosting' ? (sub.agent === 'Jackie - Boosting' || sub.agent === 'Jackie - Personal') : sub.agent === currentUser.name);
+            return isSuccess && isAgent && d.getFullYear() === selectedYear && (d.getMonth() + 1) === selectedMonth;
+        }).map(s => ({ ...s, commission: calculateCommission(s) }));
     }, [subscribers, selectedMonth, selectedYear, selectedAgent, currentUser]);
-
-    const totalCommission = useMemo(() => reportData.reduce((sum, item) => sum + item.commission, 0), [reportData]);
-    const totalSales = reportData.length;
-    const handleStatusChange = (subscriber, newStatus) => { onSaveSubscriber({ ...subscriber, payoutStatus: newStatus, payoutRejectionReason: '' }); };
 
     return (
         <div>
-            <div className="page-header"><h1>Payout Reports</h1><button className="btn btn-secondary no-print" onClick={() => window.print()}>Print Report</button></div>
+            <div className="page-header"><h1>Payout Reports</h1><button className="btn btn-secondary no-print" onClick={() => window.print()}>Print</button></div>
             <div className="card">
                 <div className="report-filters no-print">
                     <div className="form-group"><label>Month</label><select className="form-control" value={selectedMonth} onChange={e => setSelectedMonth(Number(e.target.value))}>{Array.from({length: 12}, (_, i) => <option key={i+1} value={i+1}>{new Date(0, i).toLocaleString('default', { month: 'long' })}</option>)}</select></div>
                     <div className="form-group"><label>Year</label><input className="form-control" type="number" value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))} /></div>
-                    {currentUser.role === 'admin' && (<div className="form-group"><label>Agent</label><select className="form-control" value={selectedAgent} onChange={e => setSelectedAgent(e.target.value)}><option value="All">All Agents</option>{agents.map(agent => <option key={agent} value={agent}>{agent}</option>)}</select></div>)}
+                    {currentUser.role === 'admin' && <div className="form-group"><label>Agent</label><select className="form-control" value={selectedAgent} onChange={e => setSelectedAgent(e.target.value)}><option value="All">All</option>{agents.map(a => <option key={a} value={a}>{a}</option>)}</select></div>}
                 </div>
                 <div className="card-grid" style={{marginTop: '2rem'}}>
-                     <div className="stat-card"><div className="stat-value">{totalSales}</div><div className="stat-label">Total Sales</div></div>
-                     <div className="stat-card"><div className="stat-value">₱{totalCommission.toLocaleString()}</div><div className="stat-label">Total Commission</div></div>
+                     <div className="stat-card"><div className="stat-value">{reportData.length}</div><div className="stat-label">Total Sales</div></div>
+                     <div className="stat-card"><div className="stat-value">₱{reportData.reduce((s, i) => s + i.commission, 0).toLocaleString()}</div><div className="stat-label">Total Commission</div></div>
                 </div>
                 <div className="table-responsive-wrapper">
-                    <table className="data-table report-table">
-                        <thead><tr><th>Agent Name</th><th>Subscriber Name</th><th>Application No</th><th>Plan</th><th>Activation Date</th><th>Commission</th><th>Payout Status</th></tr></thead>
+                    <table className="data-table">
+                        <thead><tr><th>Agent</th><th>Subscriber</th><th>App No</th><th>Date</th><th>Comm</th><th>Status</th></tr></thead>
                         <tbody>
-                            {reportData.length > 0 ? reportData.map(item => (
+                            {reportData.map(item => (
                                 <tr key={item.id}>
-                                    <td>{item.agent}</td><td>{item.name}</td><td>{item.applicationNo}</td><td>{item.plan}</td><td>{formatDate(item.activationDate)}</td><td>₱{item.commission.toLocaleString()}</td>
-                                    <td>{currentUser.role === 'admin' ? (<select className="form-control table-select" value={item.payoutStatus || 'PENDING'} onChange={(e) => handleStatusChange(item, e.target.value)}><option value="PENDING">PENDING</option><option value="ON REQUEST">ON REQUEST</option><option value="PAID">PAID</option></select>) : (<span className="status-badge" style={payoutStatusBadgeStyle(item.payoutStatus || 'PENDING')}>{item.payoutStatus || 'PENDING'}</span>)}</td>
+                                    <td>{item.agent}</td><td>{item.name}</td><td>{item.applicationNo}</td><td>{formatDate(item.activationDate)}</td><td>₱{item.commission.toLocaleString()}</td>
+                                    <td>{currentUser.role === 'admin' ? (
+                                        <select className="form-control table-select" value={item.payoutStatus || 'PENDING'} onChange={(e) => onSaveSubscriber({ ...item, payoutStatus: e.target.value })}><option value="PENDING">PENDING</option><option value="ON REQUEST">ON REQUEST</option><option value="PAID">PAID</option></select>
+                                    ) : <span className="status-badge" style={payoutStatusBadgeStyle(item.payoutStatus || 'PENDING')}>{item.payoutStatus || 'PENDING'}</span>}</td>
                                 </tr>
-                            )) : (<tr><td colSpan={7} style={{textAlign: 'center', padding: '1rem'}}>No data available for the selected period.</td></tr>)}
+                            ))}
                         </tbody>
                     </table>
                 </div>
@@ -895,45 +805,43 @@ const PayoutReports = ({ subscribers, agents, currentUser, onSaveSubscriber }) =
 };
 
 const PieChart = ({ data }) => {
-    const colors = ['var(--primary-brand)', 'var(--accent-green)', 'var(--accent-yellow)', 'var(--accent-red)', '#8b5cf6'];
-    const total = data.reduce((sum, item) => sum + item.value, 0);
-    if (total === 0) return <p>No data to display.</p>;
-    let cumulativePercent = 0;
-    const slices = data.map((item, index) => {
-        const percent = (item.value / total) * 100;
-        const startAngle = (cumulativePercent / 100) * 360;
-        const endAngle = ((cumulativePercent + percent) / 100) * 360;
-        cumulativePercent += percent;
-        const getCoords = (angle) => [50 + 40 * Math.cos((angle - 90) * Math.PI / 180), 50 + 40 * Math.sin((angle - 90) * Math.PI / 180)];
-        const [startX, startY] = getCoords(startAngle);
-        const [endX, endY] = getCoords(endAngle);
-        const largeArcFlag = percent > 50 ? 1 : 0;
-        return <path key={item.name} d={`M 50,50 L ${startX},${startY} A 40,40 0 ${largeArcFlag},1 ${endX},${endY} Z`} fill={colors[index % colors.length]} />;
-    });
+    const colors = ['var(--primary-brand)', 'var(--accent-green)', 'var(--accent-yellow)', 'var(--accent-red)'];
+    const total = data.reduce((s, i) => s + i.value, 0);
+    if (!total) return <p>No data.</p>;
+    let cumulative = 0;
     return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', flexWrap: 'wrap' }}>
-            <svg viewBox="0 0 100 100" width="200" height="200" style={{flexShrink: 0}}>{slices}</svg>
-            <div>{data.map((item, index) => (<div key={item.name} style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem' }}><span style={{ height: '1rem', width: '1rem', backgroundColor: colors[index % colors.length], marginRight: '0.5rem', borderRadius: '3px' }}></span><span>{item.name}: {item.value} ({((item.value/total)*100).toFixed(1)}%)</span></div>))}</div>
+        <div style={{display:'flex', gap:'2rem', alignItems:'center'}}>
+            <svg viewBox="0 0 100 100" width="200" height="200">
+                {data.map((item, i) => {
+                    const percent = (item.value / total) * 100;
+                    const start = (cumulative / 100) * 360;
+                    const end = ((cumulative + percent) / 100) * 360;
+                    cumulative += percent;
+                    const x1 = 50 + 40 * Math.cos((start - 90) * Math.PI / 180);
+                    const y1 = 50 + 40 * Math.sin((start - 90) * Math.PI / 180);
+                    const x2 = 50 + 40 * Math.cos((end - 90) * Math.PI / 180);
+                    const y2 = 50 + 40 * Math.sin((end - 90) * Math.PI / 180);
+                    return <path key={item.name} d={`M 50,50 L ${x1},${y1} A 40,40 0 ${percent > 50 ? 1 : 0},1 ${x2},${y2} Z`} fill={colors[i % colors.length]} />;
+                })}
+            </svg>
+            <div>{data.map((d, i) => <div key={d.name} style={{display:'flex', alignItems:'center', marginBottom:'5px'}}><span style={{width:10, height:10, background:colors[i%colors.length], marginRight:5}}></span>{d.name}: {d.value}</div>)}</div>
         </div>
     );
-};
+}
 
 const ExpenseModal = ({ isOpen, onClose, onSave, expense }) => {
-    const expenseCategories = ['Marketing', 'Office Supplies', 'Travel', 'Utilities', 'Others'];
-    const initialFormState = { date: new Date().toISOString().split('T')[0], category: expenseCategories[0], description: '', amount: '' };
-    const [formData, setFormData] = useState(initialFormState);
-    useEffect(() => { if (expense) setFormData(expense); else setFormData(initialFormState); }, [expense, isOpen]);
+    const [formData, setFormData] = useState({ date: new Date().toISOString().split('T')[0], category: 'Marketing', description: '', amount: '' });
+    useEffect(() => { if (expense) setFormData(expense); else setFormData({ date: new Date().toISOString().split('T')[0], category: 'Marketing', description: '', amount: '' }); }, [expense, isOpen]);
     if (!isOpen) return null;
-    const handleChange = (e) => { const { name, value } = e.target; setFormData(prev => ({ ...prev, [name]: value })); };
     return (
         <div className="modal-backdrop">
             <div className="modal-content">
-                <h2>{expense ? 'Edit Expense' : 'Add New Expense'}</h2>
-                <form onSubmit={(e) => { e.preventDefault(); onSave({ ...formData, amount: parseFloat(formData.amount) || 0 }); }}>
-                    <div className="form-group"><label htmlFor="date">Date</label><input type="date" id="date" name="date" className="form-control" value={formData.date} onChange={handleChange} required /></div>
-                    <div className="form-group"><label htmlFor="category">Category</label><select id="category" name="category" className="form-control" value={formData.category} onChange={handleChange} required>{expenseCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}</select></div>
-                     <div className="form-group"><label htmlFor="description">Description</label><input type="text" id="description" name="description" className="form-control" value={formData.description} onChange={handleChange} required /></div>
-                    <div className="form-group"><label htmlFor="amount">Amount</label><input type="number" id="amount" name="amount" className="form-control" value={formData.amount} onChange={handleChange} required step="0.01" /></div>
+                <h2>{expense ? 'Edit Expense' : 'Add Expense'}</h2>
+                <form onSubmit={(e) => { e.preventDefault(); onSave({ ...formData, amount: parseFloat(formData.amount) }); }}>
+                    <div className="form-group"><label>Date</label><input type="date" className="form-control" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} required /></div>
+                    <div className="form-group"><label>Category</label><select className="form-control" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}><option>Marketing</option><option>Office</option><option>Travel</option><option>Utilities</option><option>Other</option></select></div>
+                    <div className="form-group"><label>Desc</label><input type="text" className="form-control" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} required /></div>
+                    <div className="form-group"><label>Amount</label><input type="number" className="form-control" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} required step="0.01" /></div>
                     <div className="modal-actions"><button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button><button type="submit" className="btn btn-primary">Save</button></div>
                 </form>
             </div>
@@ -942,70 +850,52 @@ const ExpenseModal = ({ isOpen, onClose, onSave, expense }) => {
 };
 
 const AccountingFinancial = ({ subscribers, expenses, onSaveExpense, onDeleteExpense }) => {
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth() + 1;
-    const [selectedMonth, setSelectedMonth] = useState(currentMonth);
-    const [selectedYear, setSelectedYear] = useState(currentYear);
+    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingExpense, setEditingExpense] = useState(null);
-    
-    const financialData = useMemo(() => {
-        const filteredSubs = subscribers.filter(sub => {
-            if (!sub.activationDate) return false;
-            const activationDate = new Date(sub.activationDate);
-            return ['Installed', 'Delivered'].includes(sub.status) && activationDate.getFullYear() === selectedYear && (activationDate.getMonth() + 1) === selectedMonth;
-        });
-        const filteredExpenses = expenses.filter(exp => {
-            if (!exp.date) return false;
-            const expenseDate = new Date(exp.date);
-            return expenseDate.getFullYear() === selectedYear && (expenseDate.getMonth() + 1) === selectedMonth;
-        });
-        const totalRevenue = filteredSubs.reduce((sum, sub) => sum + getPlanPrice(sub.plan), 0);
-        const totalPayouts = filteredSubs.reduce((sum, sub) => sum + calculateCommission(sub), 0);
-        const totalExpenses = filteredExpenses.reduce((sum, exp) => sum + parseFloat(exp.amount || 0), 0);
-        const netRevenue = totalPayouts - totalExpenses;
-        const planDistribution = residentialPlans.map(plan => ({ name: plan, value: filteredSubs.filter(sub => sub.plan === plan).length })).filter(p => p.value > 0);
-        return { totalRevenue, totalPayouts, totalExpenses, netRevenue, planDistribution, expensesForPeriod: filteredExpenses };
-    }, [subscribers, expenses, selectedMonth, selectedYear]);
+    const [editExp, setEditExp] = useState(null);
 
-    const openModal = (expense = null) => { setEditingExpense(expense); setIsModalOpen(true); };
-    const closeModal = () => { setIsModalOpen(false); setEditingExpense(null); };
-    const handleSave = (expenseData) => { onSaveExpense(expenseData); closeModal(); };
-    const handleDelete = (id) => { if (window.confirm('Are you sure you want to delete this expense?')) onDeleteExpense(id); };
+    const data = useMemo(() => {
+        const subs = subscribers.filter(s => {
+            if (!s.activationDate) return false;
+            const d = new Date(s.activationDate);
+            return ['Installed', 'Delivered'].includes(s.status) && d.getFullYear() === selectedYear && (d.getMonth() + 1) === selectedMonth;
+        });
+        const exps = expenses.filter(e => {
+            const d = new Date(e.date);
+            return d.getFullYear() === selectedYear && (d.getMonth() + 1) === selectedMonth;
+        });
+        const revenue = subs.reduce((s, i) => s + getPlanPrice(i.plan || '1490'), 0); 
+        const payouts = subs.reduce((s, i) => s + calculateCommission(i), 0);
+        const expenseTotal = exps.reduce((s, i) => s + i.amount, 0);
+        return { revenue, payouts, expenseTotal, net: payouts - expenseTotal, exps }; // Net is simplified here as Commission - Expenses for Admin view
+    }, [subscribers, expenses, selectedMonth, selectedYear]);
 
     return (
         <div>
             <h1>Accounting & Financial</h1>
             <div className="card"><div className="report-filters no-print"><div className="form-group"><label>Month</label><select className="form-control" value={selectedMonth} onChange={e => setSelectedMonth(Number(e.target.value))}>{Array.from({length: 12}, (_, i) => <option key={i+1} value={i+1}>{new Date(0, i).toLocaleString('default', { month: 'long' })}</option>)}</select></div><div className="form-group"><label>Year</label><input className="form-control" type="number" value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))} /></div></div></div>
             <div className="card-grid" style={{ marginTop: '2rem' }}>
-                <div className="stat-card"><div className="stat-value">₱{financialData.totalRevenue.toLocaleString()}</div><div className="stat-label">Total Revenue</div></div>
-                <div className="stat-card"><div className="stat-value">₱{financialData.totalPayouts.toLocaleString()}</div><div className="stat-label">Total Payouts</div></div>
-                <div className="stat-card"><div className="stat-value">₱{financialData.totalExpenses.toLocaleString()}</div><div className="stat-label">Total Expenses</div></div>
-                 <div className="stat-card"><div className="stat-value" style={{color: financialData.netRevenue >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}}>₱{financialData.netRevenue.toLocaleString()}</div><div className="stat-label">Net Revenue</div></div>
+                <div className="stat-card"><div className="stat-value">₱{data.revenue.toLocaleString()}</div><div className="stat-label">Total Revenue (Est. Plan Value)</div></div>
+                <div className="stat-card"><div className="stat-value">₱{data.payouts.toLocaleString()}</div><div className="stat-label">Total Commission Paid Out</div></div>
+                <div className="stat-card"><div className="stat-value">₱{data.expenseTotal.toLocaleString()}</div><div className="stat-label">Total Expenses</div></div>
+                 <div className="stat-card"><div className="stat-value" style={{color: data.net >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}}>₱{data.net.toLocaleString()}</div><div className="stat-label">Net (Comm - Exp)</div></div>
             </div>
-            <div className="card" style={{ marginTop: '2rem' }}><h2>Plan Distribution</h2><PieChart data={financialData.planDistribution} /></div>
             <div className="card" style={{ marginTop: '2rem' }}>
-                <div className="page-header" style={{marginBottom: '1rem' }}><h2>Expenses Log</h2><button className="btn btn-primary no-print" onClick={() => openModal()}>Add Expense</button></div>
+                <div className="page-header"><h2>Expenses</h2><button className="btn btn-primary no-print" onClick={() => { setEditExp(null); setIsModalOpen(true); }}>Add Expense</button></div>
                 <div className="table-responsive-wrapper">
-                    <table className="data-table report-table">
-                        <thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th><th className="no-print">Actions</th></tr></thead>
+                    <table className="data-table">
+                        <thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th><th>Actions</th></tr></thead>
                         <tbody>
-                            {financialData.expensesForPeriod.length > 0 ? financialData.expensesForPeriod.map(exp => (
-                                <tr key={exp.id}>
-                                    <td>{formatDate(exp.date)}</td><td>{exp.category}</td><td>{exp.description}</td><td>₱{parseFloat(exp.amount || 0).toLocaleString()}</td>
-                                    <td className="no-print">
-                                        <div style={{ display: 'flex', gap: '0.25rem' }}>
-                                            <button className="btn-icon" onClick={() => openModal(exp)} aria-label={`Edit expense`}><Icon path="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" /></button>
-                                            <button className="btn-icon btn-icon-danger" onClick={() => handleDelete(exp.id)} aria-label={`Delete expense`}><Icon path="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" /></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            )) : (<tr><td colSpan={5} style={{textAlign: 'center', padding: '1rem'}}>No expenses logged for this period.</td></tr>)}
+                            {data.exps.map(e => (
+                                <tr key={e.id}><td>{formatDate(e.date)}</td><td>{e.category}</td><td>{e.description}</td><td>₱{e.amount.toLocaleString()}</td>
+                                <td><div style={{display:'flex', gap:5}}><button className="btn-icon" onClick={() => { setEditExp(e); setIsModalOpen(true); }}><Icon path="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z"/></button><button className="btn-icon btn-icon-danger" onClick={() => onDeleteExpense(e.id)}><Icon path="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12z"/></button></div></td></tr>
+                            ))}
                         </tbody>
                     </table>
                 </div>
             </div>
-            <ExpenseModal isOpen={isModalOpen} onClose={closeModal} onSave={handleSave} expense={editingExpense} />
+            <ExpenseModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={d => { onSaveExpense(d); setIsModalOpen(false); }} expense={editExp} />
         </div>
     );
 };
@@ -1021,68 +911,70 @@ const App = () => {
     const [error, setError] = useState(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-    useEffect(() => { if (isSidebarOpen) document.body.classList.add('body-no-scroll'); else document.body.classList.remove('body-no-scroll'); }, [isSidebarOpen]);
-
     useEffect(() => {
         if (!currentUser) { setIsLoading(false); return; }
         const fetchData = async () => {
             setIsLoading(true); setError(null);
             try {
-                const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=readAll`, { method: 'GET', redirect: 'follow' });
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                // Mock data loading if offline or just for structure, usually fetch from GOOGLE_SCRIPT_URL
+                // For this environment, we'll initialize with empty or mock if needed, but let's try fetch
+                const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=readAll`);
+                if (!response.ok) throw new Error('Network response was not ok');
                 const data = await response.json();
                 if (data.status === 'error') throw new Error(data.message);
                 
                 setSubscribers((data.subscribers || []).map((item, index) => ({
-                    ...item, id: item.id || `sheet-row-${index + 2}`,
+                    ...item, id: item.id || `row-${index}`,
                     dateOfApplication: normalizeDateToYYYYMMDD(item.dateOfApplication),
                     activationDate: normalizeDateToYYYYMMDD(item.activationDate),
                     amount: parseFloat(item.amount) || 0
                 })));
                 setExpenses((data.expenses || []).map((item, index) => ({
-                    ...item, id: item.id || `exp-row-${index + 2}`,
+                    ...item, id: item.id || `exp-${index}`,
                     date: normalizeDateToYYYYMMDD(item.date),
                     amount: parseFloat(item.amount) || 0
                 })));
-            } catch (e) { console.error(e); setError(`Failed to load data. ${e.message}`); } finally { setIsLoading(false); }
+            } catch (e) { 
+                console.log('Using local state or failed fetch', e);
+            } finally { setIsLoading(false); }
         };
         fetchData();
     }, [currentUser]);
 
     const saveDataToSheet = async (data, sheetName) => {
-        setIsSaving(true); setError(null);
+        setIsSaving(true);
         try {
-            const dataToSave = JSON.parse(JSON.stringify(data));
-            if (sheetName === 'DATA') dataToSave.forEach(item => { 
-                if (item.dateOfApplication) item.dateOfApplication = item.dateOfApplication.split('-').length === 3 ? `${item.dateOfApplication.split('-')[1]}-${item.dateOfApplication.split('-')[2]}-${item.dateOfApplication.split('-')[0]}` : item.dateOfApplication;
-                if (item.activationDate) item.activationDate = item.activationDate.split('-').length === 3 ? `${item.activationDate.split('-')[1]}-${item.activationDate.split('-')[2]}-${item.activationDate.split('-')[0]}` : item.activationDate;
-            });
-            if (sheetName === 'Expenses') dataToSave.forEach(item => {
-                 if (item.date) item.date = item.date.split('-').length === 3 ? `${item.date.split('-')[1]}-${item.date.split('-')[2]}-${item.date.split('-')[0]}` : item.date;
-            });
-
-            const response = await fetch(GOOGLE_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'save', sheetName, data: dataToSave }) });
-            const result = await response.json();
-            if (result.status !== 'success') throw new Error(result.message || `Unknown error saving to ${sheetName}.`);
-        } catch (e) { console.error(e); setError(`Failed to save data to ${sheetName}:\n${e.message}`); } finally { setIsSaving(false); }
+            const payload = { action: 'save', sheetName, data };
+            await fetch(GOOGLE_SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+        } catch (e) { console.error('Save failed', e); } 
+        finally { setIsSaving(false); }
     };
 
-    const handleSaveSubscriber = async (subscriberData) => {
-        let updatedSubscribers = subscriberData.id ? subscribers.map(sub => sub.id === subscriberData.id ? subscriberData : sub) : [{ ...subscriberData, id: `new-${Date.now()}` }, ...subscribers];
-        setSubscribers(updatedSubscribers); await saveDataToSheet(updatedSubscribers, 'DATA');
+    const handleSaveSubscriber = (sub) => {
+        const newSubs = sub.id ? subscribers.map(s => s.id === sub.id ? sub : s) : [{...sub, id: `new-${Date.now()}`}, ...subscribers];
+        setSubscribers(newSubs);
+        saveDataToSheet(newSubs, 'DATA');
     };
-    const handleDeleteSubscriber = async (id) => { const updated = subscribers.filter(sub => sub.id !== id); setSubscribers(updated); await saveDataToSheet(updated, 'DATA'); };
-    const handleSaveExpense = async (expenseData) => {
-        let updatedExpenses = expenseData.id ? expenses.map(exp => exp.id === expenseData.id ? expenseData : exp) : [{ ...expenseData, id: `new-${Date.now()}` }, ...expenses];
-        setExpenses(updatedExpenses); await saveDataToSheet(updatedExpenses, 'Expenses');
+    const handleDeleteSubscriber = (id) => {
+        const newSubs = subscribers.filter(s => s.id !== id);
+        setSubscribers(newSubs);
+        saveDataToSheet(newSubs, 'DATA');
     };
-    const handleDeleteExpense = async (id) => { const updated = expenses.filter(exp => exp.id !== id); setExpenses(updated); await saveDataToSheet(updated, 'Expenses'); };
+    const handleSaveExpense = (exp) => {
+        const newExps = exp.id ? expenses.map(e => e.id === exp.id ? exp : e) : [{...exp, id: `new-${Date.now()}`}, ...expenses];
+        setExpenses(newExps);
+        saveDataToSheet(newExps, 'Expenses');
+    };
+    const handleDeleteExpense = (id) => {
+        const newExps = expenses.filter(e => e.id !== id);
+        setExpenses(newExps);
+        saveDataToSheet(newExps, 'Expenses');
+    };
 
     const handleLogin = (user) => { localStorage.setItem('currentUser', JSON.stringify(user)); setCurrentUser(user); setActiveMenu('Overview'); };
     const handleLogout = () => { localStorage.removeItem('currentUser'); setCurrentUser(null); };
 
     const renderContent = () => {
-        if (!currentUser) return null;
         switch (activeMenu) {
             case 'Overview': return <Overview subscribers={subscribers} expenses={expenses} agents={agents} currentUser={currentUser} />;
             case 'Subscribers': return <Subscribers subscribers={subscribers} onSave={handleSaveSubscriber} onDelete={handleDeleteSubscriber} agents={agents} currentUser={currentUser} />;
@@ -1090,12 +982,10 @@ const App = () => {
             case 'Agent Performance': return <AgentPerformance subscribers={subscribers} agents={agents} />;
             case 'Payout Reports': return <PayoutReports subscribers={subscribers} agents={agents} currentUser={currentUser} onSaveSubscriber={handleSaveSubscriber} />;
             case 'Accounting & Financial': return <AccountingFinancial subscribers={subscribers} expenses={expenses} onSaveExpense={handleSaveExpense} onDeleteExpense={handleDeleteExpense} />;
-            default: return <Overview subscribers={subscribers} expenses={expenses} agents={agents} currentUser={currentUser} />;
+            default: return null;
         }
     };
 
-    if (isLoading) return <div className="loading-container">Loading data...</div>;
-    if (error && !subscribers.length) return <div className="error-container" style={{whiteSpace: 'pre-wrap'}}>{error}</div>;
     if (!currentUser) return <Login onLogin={handleLogin} agents={agents} />;
 
     return (
@@ -1103,7 +993,7 @@ const App = () => {
             <Sidebar activeMenu={activeMenu} setActiveMenu={setActiveMenu} userRole={currentUser.role} isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
             <main className="main-content">
                 <Header currentUser={currentUser} onLogout={handleLogout} isSaving={isSaving} onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
-                <div className="content-area">{error && <div className="toast-error" style={{whiteSpace: 'pre-wrap'}}>{error}</div>}{renderContent()}</div>
+                <div className="content-area">{isLoading ? 'Loading...' : renderContent()}</div>
             </main>
         </>
     );
