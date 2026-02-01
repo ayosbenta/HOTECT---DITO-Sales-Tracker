@@ -97,6 +97,7 @@ const ICONS = {
     adminCommission: "M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z",
     topAgent: "M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm7 6c-1.65 0-3-1.35-3-3V5h6v6c0 1.65-1.35 3-3 3zm7-6c0 1.3-.84 2.4-2 2.82V7h2v1z",
     netProfit: "M15 14c-2.39 0-4.47 1.21-5.73 3.05-.38-.21-.81-.35-1.27-.35-1.38 0-2.5 1.12-2.5 2.5s1.12 2.5 2.5 2.5c.81 0 1.5-.39 1.96-1H15c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5v1.28c-.21.08-.4.19-.58.32-.42-.9-1.33-1.6-2.42-1.6-1.66 0-3 1.34-3 3s1.34 3 3 3h.28c.31.89.88 1.66 1.63 2.24.47.36.99.64 1.56.84 1.48 2.08 3.96 3.42 6.78 3.42 4.97 0 9-4.03 9-9s-4.03-9-9-9-9 4.03-9 9h2c0-3.86 3.14-7 7-7s7 3.14 7 7-3.14 7-7 7z",
+    calendar: "M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z",
 };
 
 // --- COMPONENTS ---
@@ -167,6 +168,7 @@ const Sidebar = ({ activeMenu, setActiveMenu, userRole, isOpen, onClose }) => {
     const menus = [
         { name: 'Overview', icon: 'overview', roles: ['admin', 'agent'] },
         { name: 'Subscribers', icon: 'subscribers', roles: ['admin', 'agent'] },
+        { name: 'Calendar', icon: 'calendar', roles: ['admin'] },
         { name: 'My Performance', icon: 'performance', roles: ['agent'] },
         { name: 'Agent Performance', icon: 'performance', roles: ['admin'] },
         { name: 'Payout Reports', icon: 'payout', roles: ['admin', 'agent'] },
@@ -900,6 +902,105 @@ const AccountingFinancial = ({ subscribers, expenses, onSaveExpense, onDeleteExp
     );
 };
 
+const CalendarView = ({ subscribers, agents }) => {
+    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
+    const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
+    const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+
+    const data = useMemo(() => {
+        return days.map(day => {
+            const dateStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            
+            const rowData = { day, dateStr, agents: {} };
+
+            agents.forEach(agent => {
+                const registered = subscribers.filter(s => {
+                    if (!s.dateOfApplication) return false;
+                    return s.dateOfApplication === dateStr && s.agent === agent;
+                }).length;
+
+                const installed = subscribers.filter(s => {
+                    if (!s.activationDate) return false;
+                     const isInstalled = ['Installed', 'Delivered'].includes(s.status);
+                    return isInstalled && s.activationDate === dateStr && s.agent === agent;
+                }).length;
+
+                rowData.agents[agent] = { registered, installed };
+            });
+            return rowData;
+        });
+    }, [subscribers, agents, selectedMonth, selectedYear]);
+
+    return (
+        <div>
+            <h1>Calendar Report</h1>
+            <div className="card">
+                <div className="report-filters">
+                    <div className="form-group">
+                        <label>Month</label>
+                        <select className="form-control" value={selectedMonth} onChange={e => setSelectedMonth(Number(e.target.value))}>
+                            {Array.from({length: 12}, (_, i) => <option key={i+1} value={i+1}>{new Date(0, i).toLocaleString('default', { month: 'long' })}</option>)}
+                        </select>
+                    </div>
+                    <div className="form-group">
+                        <label>Year</label>
+                        <input className="form-control" type="number" value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))} />
+                    </div>
+                </div>
+
+                <div className="table-responsive-wrapper">
+                    <table className="data-table calendar-table">
+                        <thead>
+                            <tr>
+                                <th rowSpan={2} style={{position: 'sticky', left: 0, zIndex: 10, backgroundColor: '#f9fafb', borderRight: '1px solid var(--border-color)'}}>Day</th>
+                                {agents.map(agent => (
+                                    <th key={agent} colSpan={2} style={{textAlign: 'center', borderBottom: '1px solid var(--border-color)', borderLeft: '1px solid var(--border-color)'}}>{agent}</th>
+                                ))}
+                            </tr>
+                            <tr>
+                                {agents.map(agent => (
+                                    <React.Fragment key={`${agent}-headers`}>
+                                        <th style={{fontSize: '0.7rem', color: 'var(--accent-blue)', borderLeft: '1px solid var(--border-color)', textAlign: 'center'}}>Reg</th>
+                                        <th style={{fontSize: '0.7rem', color: 'var(--accent-green)', textAlign: 'center'}}>Inst</th>
+                                    </React.Fragment>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {data.map(row => (
+                                <tr key={row.day}>
+                                    <td style={{position: 'sticky', left: 0, backgroundColor: 'white', fontWeight: 'bold', borderRight: '1px solid var(--border-color)'}}>{row.day}</td>
+                                    {agents.map(agent => (
+                                        <React.Fragment key={`${row.day}-${agent}`}>
+                                            <td style={{textAlign: 'center', borderLeft: '1px solid var(--border-color)', color: row.agents[agent].registered > 0 ? 'var(--text-primary)' : '#e5e7eb'}}>{row.agents[agent].registered || '-'}</td>
+                                            <td style={{textAlign: 'center', color: row.agents[agent].installed > 0 ? 'var(--primary-brand)' : '#e5e7eb', fontWeight: row.agents[agent].installed > 0 ? 'bold' : 'normal'}}>{row.agents[agent].installed || '-'}</td>
+                                        </React.Fragment>
+                                    ))}
+                                </tr>
+                            ))}
+                            <tr style={{backgroundColor: '#f3f4f6', fontWeight: 'bold'}}>
+                                <td style={{position: 'sticky', left: 0, backgroundColor: '#f3f4f6', borderRight: '1px solid var(--border-color)'}}>TOTAL</td>
+                                {agents.map(agent => {
+                                    const totalReg = data.reduce((sum, r) => sum + r.agents[agent].registered, 0);
+                                    const totalInst = data.reduce((sum, r) => sum + r.agents[agent].installed, 0);
+                                    return (
+                                        <React.Fragment key={`total-${agent}`}>
+                                            <td style={{textAlign: 'center', borderLeft: '1px solid var(--border-color)'}}>{totalReg}</td>
+                                            <td style={{textAlign: 'center', color: 'var(--primary-brand)'}}>{totalInst}</td>
+                                        </React.Fragment>
+                                    );
+                                })}
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const App = () => {
     const [currentUser, setCurrentUser] = useState(() => { try { return JSON.parse(localStorage.getItem('currentUser')); } catch { return null; } });
     const [activeMenu, setActiveMenu] = useState('Overview');
@@ -978,6 +1079,7 @@ const App = () => {
         switch (activeMenu) {
             case 'Overview': return <Overview subscribers={subscribers} expenses={expenses} agents={agents} currentUser={currentUser} />;
             case 'Subscribers': return <Subscribers subscribers={subscribers} onSave={handleSaveSubscriber} onDelete={handleDeleteSubscriber} agents={agents} currentUser={currentUser} />;
+            case 'Calendar': return <CalendarView subscribers={subscribers} agents={agents} />;
             case 'My Performance': return <MyPerformance subscribers={subscribers} currentUser={currentUser} />;
             case 'Agent Performance': return <AgentPerformance subscribers={subscribers} agents={agents} />;
             case 'Payout Reports': return <PayoutReports subscribers={subscribers} agents={agents} currentUser={currentUser} onSaveSubscriber={handleSaveSubscriber} />;
