@@ -630,6 +630,82 @@
       color: white;
     }
     
+    /* Calendar Grid Styles */
+    .calendar-container {
+        display: flex;
+        flex-direction: column;
+    }
+    .calendar-header-row {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        background-color: #f9fafb;
+        border-bottom: 1px solid var(--border-color);
+        border-top: 1px solid var(--border-color);
+        border-left: 1px solid var(--border-color);
+        border-right: 1px solid var(--border-color);
+        border-radius: 8px 8px 0 0;
+    }
+    .calendar-header-cell {
+        padding: 0.75rem;
+        text-align: center;
+        font-weight: 600;
+        color: var(--text-secondary);
+        border-right: 1px solid var(--border-color);
+    }
+    .calendar-header-cell:last-child {
+        border-right: none;
+    }
+    .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        border-left: 1px solid var(--border-color);
+        border-bottom: 1px solid var(--border-color);
+    }
+    .calendar-day {
+        border-right: 1px solid var(--border-color);
+        border-bottom: 1px solid var(--border-color);
+        min-height: 100px;
+        padding: 0.5rem;
+        background-color: white;
+        display: flex;
+        flex-direction: column;
+        transition: background-color 0.2s;
+    }
+    .calendar-day.empty {
+        background-color: #f9fafb;
+    }
+    .calendar-day:hover:not(.empty) {
+        background-color: #f8fafc;
+    }
+    .day-number {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: var(--text-primary);
+    }
+    .day-stats {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        font-size: 0.85rem;
+    }
+    .stat {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.15rem 0.4rem;
+        border-radius: 4px;
+    }
+    .stat.registered {
+        background-color: #eff6ff;
+        color: var(--accent-blue);
+    }
+    .stat.installed {
+        background-color: #ecfdf5;
+        color: var(--accent-green);
+    }
+    .stat .value {
+        font-weight: 700;
+    }
+    
     /* Responsive Additions */
     .sidebar-toggle {
         display: none;
@@ -715,6 +791,12 @@
         }
         .report-filters .form-group { width: 100%; margin-bottom: 0; }
         .card-grid, .kpi-card-grid { grid-template-columns: 1fr; }
+        .calendar-grid, .calendar-header-row {
+            min-width: 600px; /* Ensure calendar doesn't squash too much */
+        }
+        .calendar-container {
+            overflow-x: auto;
+        }
     }
   </style>
 <script type="importmap">

@@ -906,32 +906,63 @@ const CalendarView = ({ subscribers, agents }) => {
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
-    const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
-    const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+    // Helpers for date math
+    const getDaysInMonth = (year, month) => new Date(year, month, 0).getDate();
+    const getFirstDayOfMonth = (year, month) => new Date(year, month - 1, 1).getDay(); // 0 = Sunday
 
-    const data = useMemo(() => {
-        return days.map(day => {
+    const daysInMonth = getDaysInMonth(selectedYear, selectedMonth);
+    const startDay = getFirstDayOfMonth(selectedYear, selectedMonth);
+
+    // Filter subscribers relevant to the view (admin sees all passed agents, agent sees self)
+    const visibleSubscribers = useMemo(() => {
+        return subscribers.filter(s => agents.includes(s.agent));
+    }, [subscribers, agents]);
+
+    const dayData = useMemo(() => {
+        const data = {};
+        for (let day = 1; day <= daysInMonth; day++) {
             const dateStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             
-            const rowData = { day, dateStr, agents: {} };
+            // Count registered: subscriber.dateOfApplication === dateStr
+            const registered = visibleSubscribers.filter(s => s.dateOfApplication === dateStr).length;
+            
+            // Count installed: subscriber.activationDate === dateStr AND status is 'Installed' or 'Delivered'
+            const installed = visibleSubscribers.filter(s => 
+                ['Installed', 'Delivered'].includes(s.status) && s.activationDate === dateStr
+            ).length;
+            
+            data[day] = { registered, installed };
+        }
+        return data;
+    }, [visibleSubscribers, selectedMonth, selectedYear, daysInMonth]);
 
-            agents.forEach(agent => {
-                const registered = subscribers.filter(s => {
-                    if (!s.dateOfApplication) return false;
-                    return s.dateOfApplication === dateStr && s.agent === agent;
-                }).length;
-
-                const installed = subscribers.filter(s => {
-                    if (!s.activationDate) return false;
-                     const isInstalled = ['Installed', 'Delivered'].includes(s.status);
-                    return isInstalled && s.activationDate === dateStr && s.agent === agent;
-                }).length;
-
-                rowData.agents[agent] = { registered, installed };
-            });
-            return rowData;
-        });
-    }, [subscribers, agents, selectedMonth, selectedYear]);
+    const renderCalendarDays = () => {
+        const boxes = [];
+        // Empty boxes for days before start of month
+        for (let i = 0; i < startDay; i++) {
+            boxes.push(<div key={`empty-${i}`} className="calendar-day empty"></div>);
+        }
+        // Actual days
+        for (let day = 1; day <= daysInMonth; day++) {
+            const { registered, installed } = dayData[day];
+            boxes.push(
+                <div key={day} className="calendar-day">
+                    <div className="day-number">{day}</div>
+                    <div className="day-stats">
+                        <div className="stat registered">
+                            <span className="label">Reg:</span>
+                            <span className="value">{registered}</span>
+                        </div>
+                        <div className="stat installed">
+                            <span className="label">Inst:</span>
+                            <span className="value">{installed}</span>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+        return boxes;
+    };
 
     return (
         <div>
@@ -950,51 +981,19 @@ const CalendarView = ({ subscribers, agents }) => {
                     </div>
                 </div>
 
-                <div className="table-responsive-wrapper">
-                    <table className="data-table calendar-table">
-                        <thead>
-                            <tr>
-                                <th rowSpan={2} style={{position: 'sticky', left: 0, zIndex: 10, backgroundColor: '#f9fafb', borderRight: '1px solid var(--border-color)'}}>Day</th>
-                                {agents.map(agent => (
-                                    <th key={agent} colSpan={2} style={{textAlign: 'center', borderBottom: '1px solid var(--border-color)', borderLeft: '1px solid var(--border-color)'}}>{agent}</th>
-                                ))}
-                            </tr>
-                            <tr>
-                                {agents.map(agent => (
-                                    <React.Fragment key={`${agent}-headers`}>
-                                        <th style={{fontSize: '0.7rem', color: 'var(--accent-blue)', borderLeft: '1px solid var(--border-color)', textAlign: 'center'}}>Reg</th>
-                                        <th style={{fontSize: '0.7rem', color: 'var(--accent-green)', textAlign: 'center'}}>Inst</th>
-                                    </React.Fragment>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {data.map(row => (
-                                <tr key={row.day}>
-                                    <td style={{position: 'sticky', left: 0, backgroundColor: 'white', fontWeight: 'bold', borderRight: '1px solid var(--border-color)'}}>{row.day}</td>
-                                    {agents.map(agent => (
-                                        <React.Fragment key={`${row.day}-${agent}`}>
-                                            <td style={{textAlign: 'center', borderLeft: '1px solid var(--border-color)', color: row.agents[agent].registered > 0 ? 'var(--text-primary)' : '#e5e7eb'}}>{row.agents[agent].registered || '-'}</td>
-                                            <td style={{textAlign: 'center', color: row.agents[agent].installed > 0 ? 'var(--primary-brand)' : '#e5e7eb', fontWeight: row.agents[agent].installed > 0 ? 'bold' : 'normal'}}>{row.agents[agent].installed || '-'}</td>
-                                        </React.Fragment>
-                                    ))}
-                                </tr>
-                            ))}
-                            <tr style={{backgroundColor: '#f3f4f6', fontWeight: 'bold'}}>
-                                <td style={{position: 'sticky', left: 0, backgroundColor: '#f3f4f6', borderRight: '1px solid var(--border-color)'}}>TOTAL</td>
-                                {agents.map(agent => {
-                                    const totalReg = data.reduce((sum, r) => sum + r.agents[agent].registered, 0);
-                                    const totalInst = data.reduce((sum, r) => sum + r.agents[agent].installed, 0);
-                                    return (
-                                        <React.Fragment key={`total-${agent}`}>
-                                            <td style={{textAlign: 'center', borderLeft: '1px solid var(--border-color)'}}>{totalReg}</td>
-                                            <td style={{textAlign: 'center', color: 'var(--primary-brand)'}}>{totalInst}</td>
-                                        </React.Fragment>
-                                    );
-                                })}
-                            </tr>
-                        </tbody>
-                    </table>
+                <div className="calendar-container">
+                    <div className="calendar-header-row">
+                        <div className="calendar-header-cell">Sun</div>
+                        <div className="calendar-header-cell">Mon</div>
+                        <div className="calendar-header-cell">Tue</div>
+                        <div className="calendar-header-cell">Wed</div>
+                        <div className="calendar-header-cell">Thu</div>
+                        <div className="calendar-header-cell">Fri</div>
+                        <div className="calendar-header-cell">Sat</div>
+                    </div>
+                    <div className="calendar-grid">
+                        {renderCalendarDays()}
+                    </div>
                 </div>
             </div>
         </div>
