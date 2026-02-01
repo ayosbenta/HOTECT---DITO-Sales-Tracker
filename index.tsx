@@ -168,7 +168,7 @@ const Sidebar = ({ activeMenu, setActiveMenu, userRole, isOpen, onClose }) => {
     const menus = [
         { name: 'Overview', icon: 'overview', roles: ['admin', 'agent'] },
         { name: 'Subscribers', icon: 'subscribers', roles: ['admin', 'agent'] },
-        { name: 'Calendar', icon: 'calendar', roles: ['admin'] },
+        { name: 'Calendar', icon: 'calendar', roles: ['admin', 'agent'] },
         { name: 'My Performance', icon: 'performance', roles: ['agent'] },
         { name: 'Agent Performance', icon: 'performance', roles: ['admin'] },
         { name: 'Payout Reports', icon: 'payout', roles: ['admin', 'agent'] },
@@ -1079,7 +1079,11 @@ const App = () => {
         switch (activeMenu) {
             case 'Overview': return <Overview subscribers={subscribers} expenses={expenses} agents={agents} currentUser={currentUser} />;
             case 'Subscribers': return <Subscribers subscribers={subscribers} onSave={handleSaveSubscriber} onDelete={handleDeleteSubscriber} agents={agents} currentUser={currentUser} />;
-            case 'Calendar': return <CalendarView subscribers={subscribers} agents={agents} />;
+            case 'Calendar':
+                const visibleAgents = currentUser.role === 'admin' 
+                    ? agents 
+                    : (currentUser.name === 'Jackie - Boosting' ? ['Jackie - Boosting', 'Jackie - Personal'] : [currentUser.name]);
+                return <CalendarView subscribers={subscribers} agents={visibleAgents} />;
             case 'My Performance': return <MyPerformance subscribers={subscribers} currentUser={currentUser} />;
             case 'Agent Performance': return <AgentPerformance subscribers={subscribers} agents={agents} />;
             case 'Payout Reports': return <PayoutReports subscribers={subscribers} agents={agents} currentUser={currentUser} onSaveSubscriber={handleSaveSubscriber} />;
