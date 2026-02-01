@@ -936,6 +936,16 @@ const CalendarView = ({ subscribers, agents }) => {
         return data;
     }, [visibleSubscribers, selectedMonth, selectedYear, daysInMonth]);
 
+    const totalInstalledForMonth = useMemo(() => {
+         let total = 0;
+         for (let day = 1; day <= daysInMonth; day++) {
+             if (dayData[day]) {
+                 total += dayData[day].installed;
+             }
+         }
+         return total;
+    }, [dayData, daysInMonth]);
+
     const renderCalendarDays = () => {
         const boxes = [];
         // Empty boxes for days before start of month
@@ -994,6 +1004,9 @@ const CalendarView = ({ subscribers, agents }) => {
                     <div className="calendar-grid">
                         {renderCalendarDays()}
                     </div>
+                </div>
+                <div style={{ marginTop: '1.5rem', textAlign: 'right', fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--accent-red)' }}>
+                    Total Installed: {totalInstalledForMonth}
                 </div>
             </div>
         </div>
