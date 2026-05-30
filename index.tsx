@@ -27,8 +27,25 @@ import {
     Plus,
     Tag,
     Edit3,
-    Trash2
+    Trash2,
+    Megaphone,
+    Layers,
+    Globe
 } from 'lucide-react';
+import {
+    ResponsiveContainer,
+    AreaChart,
+    Area,
+    LineChart as RechartsLineChart,
+    Line as RechartsLine,
+    BarChart as RechartsBarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip as RechartsTooltip,
+    Legend
+} from 'recharts';
 
 // --- CONFIGURATION ---
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyo9W0vsdFowaCuR1M2E5SPm2T-km_XXWp--xbrCp1-J1D_T-PfaO5X0KhtvenzKlY6/exec';
@@ -136,7 +153,8 @@ const ICONS = {
     adminCommission: "M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z",
     topAgent: "M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm7 6c-1.65 0-3-1.35-3-3V5h6v6c0 1.65-1.35 3-3 3zm7-6c0 1.3-.84 2.4-2 2.82V7h2v1z",
     netProfit: "M15 14c-2.39 0-4.47 1.21-5.73 3.05-.38-.21-.81-.35-1.27-.35-1.38 0-2.5 1.12-2.5 2.5s1.12 2.5 2.5 2.5c.81 0 1.5-.39 1.96-1H15c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5v1.28c-.21.08-.4.19-.58.32-.42-.9-1.33-1.6-2.42-1.6-1.66 0-3 1.34-3 3s1.34 3 3 3h.28c.31.89.88 1.66 1.63 2.24.47.36.99.64 1.56.84 1.48 2.08 3.96 3.42 6.78 3.42 4.97 0 9-4.03 9-9s-4.03-9-9-9-9 4.03-9 9h2c0-3.86 3.14-7 7-7s7 3.14 7 7-3.14 7-7 7z",
-    calendar: "M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"
+    calendar: "M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z",
+    metaAds: "M12 MetaAds"
 };
 
 const lucideIconsMap = {
@@ -158,7 +176,8 @@ const lucideIconsMap = {
     adminCommission: Shield,
     topAgent: Award,
     netProfit: Activity,
-    calendar: Calendar
+    calendar: Calendar,
+    metaAds: Megaphone
 };
 
 const path_to_key_map = {};
@@ -245,6 +264,7 @@ const Sidebar = ({ activeMenu, setActiveMenu, userRole, isOpen, onClose }) => {
         { name: 'Agent Performance', icon: 'performance', roles: ['admin'] },
         { name: 'Payout Reports', icon: 'payout', roles: ['admin', 'agent'] },
         { name: 'Accounting & Financial', icon: 'accounting', roles: ['admin'] },
+        { name: 'Meta Ads Monitoring', icon: 'metaAds', roles: ['admin', 'agent'] },
     ];
 
     return (
@@ -1244,6 +1264,1472 @@ const CalendarView = ({ subscribers, agents }) => {
     );
 };
 
+const DEFAULT_PAGES = [
+    { id: 'page-1', name: 'DITO HOME WIFI - LEAH', category: 'Home Wifi', agent: 'Leah - Boosting', status: 'Active', isArchived: false },
+    { id: 'page-2', name: 'DITO UNLIMITED INTERNET - JACKY', category: 'Unlimited Internet', agent: 'Jackie - Boosting', status: 'Active', isArchived: false },
+    { id: 'page-3', name: 'DITO HOME WIRELESS - GHAYE', category: 'Wireless', agent: 'Lyn - Boosting', status: 'Active', isArchived: false }
+];
+
+const DEFAULT_CAMPAIGNS = [
+    { id: 'camp-1', pageId: 'page-1', name: 'Leah Home Wifi March Promo', dateStarted: '2026-03-01', dailyBudget: 150, totalBudget: 4500, numCreatives: 3, creativeType: 'Image', status: 'Active', agent: 'Leah - Boosting', processedBy: 'Admin' },
+    { id: 'camp-2', pageId: 'page-2', name: 'Jacky Unli Net Launch', dateStarted: '2026-04-05', dailyBudget: 300, totalBudget: 9000, numCreatives: 5, creativeType: 'Video', status: 'Active', agent: 'Jackie - Boosting', processedBy: 'Admin' },
+    { id: 'camp-3', pageId: 'page-3', name: 'Ghaye Wireless Unlimited Base', dateStarted: '2026-05-10', dailyBudget: 200, totalBudget: 6000, numCreatives: 2, creativeType: 'Carousel', status: 'Active', agent: 'Lyn - Boosting', processedBy: 'Admin' }
+];
+
+const DEFAULT_LOGS = [
+    { id: 'log-1', campaignId: 'camp-1', date: '2026-03-05', amountSpent: 600, reach: 12000, impressions: 15000, clicks: 450, messages: 90, leads: 18, approvedSales: 4, rejectedSales: 1, revenueGenerated: 6000 },
+    { id: 'log-2', campaignId: 'camp-1', date: '2026-03-12', amountSpent: 1050, reach: 21000, impressions: 26000, clicks: 780, messages: 150, leads: 30, approvedSales: 7, rejectedSales: 2, revenueGenerated: 10500 },
+    { id: 'log-3', campaignId: 'camp-1', date: '2026-04-05', amountSpent: 1200, reach: 24000, impressions: 30000, clicks: 900, messages: 180, leads: 36, approvedSales: 8, rejectedSales: 1, revenueGenerated: 12000 },
+    { id: 'log-4', campaignId: 'camp-1', date: '2026-04-20', amountSpent: 1500, reach: 30000, impressions: 38000, clicks: 1100, messages: 220, leads: 45, approvedSales: 10, rejectedSales: 3, revenueGenerated: 15000 },
+    
+    { id: 'log-5', campaignId: 'camp-2', date: '2026-04-08', amountSpent: 1500, reach: 28000, impressions: 35000, clicks: 1120, messages: 250, leads: 55, approvedSales: 12, rejectedSales: 2, revenueGenerated: 18000 },
+    { id: 'log-6', campaignId: 'camp-2', date: '2026-04-22', amountSpent: 2100, reach: 40000, impressions: 52000, clicks: 1600, messages: 350, leads: 78, approvedSales: 18, rejectedSales: 4, revenueGenerated: 27000 },
+    { id: 'log-7', campaignId: 'camp-2', date: '2026-05-02', amountSpent: 1800, reach: 34000, impressions: 44000, clicks: 1350, messages: 300, leads: 65, approvedSales: 15, rejectedSales: 3, revenueGenerated: 22500 },
+    { id: 'log-8', campaignId: 'camp-2', date: '2026-05-20', amountSpent: 2500, reach: 48000, impressions: 61000, clicks: 1900, messages: 420, leads: 92, approvedSales: 22, rejectedSales: 5, revenueGenerated: 33000 },
+    
+    { id: 'log-9', campaignId: 'camp-3', date: '2026-05-12', amountSpent: 1000, reach: 18000, impressions: 22000, clicks: 650, messages: 130, leads: 26, approvedSales: 6, rejectedSales: 1, revenueGenerated: 9000 },
+    { id: 'log-10', campaignId: 'camp-3', date: '2026-05-18', amountSpent: 1600, reach: 29000, impressions: 36000, clicks: 1100, messages: 210, leads: 44, approvedSales: 10, rejectedSales: 2, revenueGenerated: 15000 },
+    { id: 'log-11', campaignId: 'camp-3', date: '2026-05-25', amountSpent: 2000, reach: 37000, impressions: 46000, clicks: 1400, messages: 280, leads: 58, approvedSales: 13, rejectedSales: 3, revenueGenerated: 19500 }
+];
+
+// --- META ADS MONITORING COMPONENT ---
+const MetaAds = ({ agents, currentUser, initialPages = [], initialCampaigns = [], initialLogs = [], onSaveMetaAdsData }) => {
+    const [subTab, setSubTab] = useState('Dashboard'); // 'Dashboard' | 'Pages' | 'Campaigns' | 'Logs'
+    const [chartGroup, setChartGroup] = useState('Trends'); // 'Trends' | 'Comparisons' | 'Insights'
+    const [showArchivedPages, setShowArchivedPages] = useState(false);
+
+    // Persisted Data layers
+    const [pages, setPages] = useState(() => initialPages.length > 0 ? initialPages : DEFAULT_PAGES);
+    const [campaigns, setCampaigns] = useState(() => initialCampaigns.length > 0 ? initialCampaigns : DEFAULT_CAMPAIGNS);
+    const [performanceLogs, setPerformanceLogs] = useState(() => initialLogs.length > 0 ? initialLogs : DEFAULT_LOGS);
+
+    // Synchronize props dynamically when loaded from Google Sheet
+    useEffect(() => {
+        if (initialPages && initialPages.length > 0) {
+            setPages(initialPages);
+        }
+    }, [initialPages]);
+
+    useEffect(() => {
+        if (initialCampaigns && initialCampaigns.length > 0) {
+            setCampaigns(initialCampaigns);
+        }
+    }, [initialCampaigns]);
+
+    useEffect(() => {
+        if (initialLogs && initialLogs.length > 0) {
+            setPerformanceLogs(initialLogs);
+        }
+    }, [initialLogs]);
+
+    // Role-based visibility logic
+    const isRecordVisible = (agentField) => {
+        if (currentUser.role === 'admin') return true;
+        if (currentUser.name === 'Jackie - Boosting') {
+            return agentField === 'Jackie - Boosting' || agentField === 'Jackie - Personal';
+        }
+        if (currentUser.name === 'Lyn - Boosting') {
+            return agentField === 'Lyn - Boosting' || agentField === 'Lyn Personal';
+        }
+        return agentField === currentUser.name;
+    };
+
+    // Filter states
+    const [filterPageId, setFilterPageId] = useState('All');
+    const [filterCampaignId, setFilterCampaignId] = useState('All');
+    const [filterAgent, setFilterAgent] = useState(() => currentUser.role === 'agent' ? currentUser.name : 'All');
+    const [filterProcessedBy, setFilterProcessedBy] = useState('All');
+    const [filterCampStatus, setFilterCampStatus] = useState('All');
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+
+    const resetFilters = () => {
+        setFilterPageId('All');
+        setFilterCampaignId('All');
+        setFilterAgent(currentUser.role === 'agent' ? currentUser.name : 'All');
+        setFilterProcessedBy('All');
+        setFilterCampStatus('All');
+        setStartDate('');
+        setEndDate('');
+    };
+
+    // Derived lists
+    const visiblePages = useMemo(() => {
+        return pages.filter(p => isRecordVisible(p.agent) && (showArchivedPages ? true : !p.isArchived));
+    }, [pages, showArchivedPages, currentUser]);
+
+    const activePagesList = useMemo(() => {
+        return pages.filter(p => !p.isArchived && isRecordVisible(p.agent));
+    }, [pages, currentUser]);
+
+    const visibleCampaigns = useMemo(() => {
+        return campaigns.filter(c => {
+            const page = pages.find(p => p.id === c.pageId);
+            const isArchived = page ? page.isArchived : false;
+            return !isArchived && isRecordVisible(c.agent);
+        });
+    }, [campaigns, pages, currentUser]);
+
+    const processedByOptions = useMemo(() => {
+        const set = new Set(visibleCampaigns.map(c => c.processedBy));
+        return Array.from(set).filter(Boolean);
+    }, [visibleCampaigns]);
+
+    const filteredLogs = useMemo(() => {
+        return performanceLogs.filter(log => {
+            const campaign = campaigns.find(c => c.id === log.campaignId);
+            if (!campaign) return false;
+            const page = pages.find(p => p.id === campaign.pageId);
+            if (!page || page.isArchived) return false;
+
+            if (!isRecordVisible(campaign.agent)) return false;
+
+            if (filterPageId !== 'All' && campaign.pageId !== filterPageId) return false;
+            if (filterCampaignId !== 'All' && log.campaignId !== filterCampaignId) return false;
+
+            if (filterAgent !== 'All') {
+                if (filterAgent === 'Jackie - Boosting') {
+                    if (campaign.agent !== 'Jackie - Boosting' && campaign.agent !== 'Jackie - Personal') return false;
+                } else if (filterAgent === 'Lyn - Boosting') {
+                    if (campaign.agent !== 'Lyn - Boosting' && campaign.agent !== 'Lyn Personal') return false;
+                } else {
+                    if (campaign.agent !== filterAgent) return false;
+                }
+            }
+
+            if (filterProcessedBy !== 'All' && campaign.processedBy !== filterProcessedBy) return false;
+            if (filterCampStatus !== 'All' && campaign.status !== filterCampStatus) return false;
+            if (startDate && log.date < startDate) return false;
+            if (endDate && log.date > endDate) return false;
+
+            return true;
+        });
+    }, [performanceLogs, campaigns, pages, filterPageId, filterCampaignId, filterAgent, filterProcessedBy, filterCampStatus, startDate, endDate, currentUser]);
+
+    // Financial & KPI aggregates
+    const kpis = useMemo(() => {
+        const totalPages = pages.filter(p => !p.isArchived && isRecordVisible(p.agent)).length;
+        const activePages = pages.filter(p => !p.isArchived && p.status === 'Active' && isRecordVisible(p.agent)).length;
+
+        const filteredCamps = campaigns.filter(c => {
+            const page = pages.find(p => p.id === c.pageId);
+            if (!page || page.isArchived) return false;
+            if (!isRecordVisible(c.agent)) return false;
+
+            if (filterPageId !== 'All' && c.pageId !== filterPageId) return false;
+            if (filterCampaignId !== 'All' && c.id !== filterCampaignId) return false;
+
+            if (filterAgent !== 'All') {
+                if (filterAgent === 'Jackie - Boosting') {
+                    if (c.agent !== 'Jackie - Boosting' && c.agent !== 'Jackie - Personal') return false;
+                } else if (filterAgent === 'Lyn - Boosting') {
+                    if (c.agent !== 'Lyn - Boosting' && c.agent !== 'Lyn Personal') return false;
+                } else {
+                    if (c.agent !== filterAgent) return false;
+                }
+            }
+
+            if (filterProcessedBy !== 'All' && c.processedBy !== filterProcessedBy) return false;
+            if (filterCampStatus !== 'All' && c.status !== filterCampStatus) return false;
+            return true;
+        });
+
+        const totalCampaigns = filteredCamps.length;
+        const activeCampaigns = filteredCamps.filter(c => c.status === 'Active').length;
+        const totalCreatives = filteredCamps.filter(c => c.status === 'Active').reduce((sum, c) => sum + (c.numCreatives || 0), 0);
+
+        let totalSpend = 0;
+        let totalReach = 0;
+        let totalImpressions = 0;
+        let totalClicks = 0;
+        let totalMessages = 0;
+        let totalLeads = 0;
+        let totalApprovedSales = 0;
+        let totalRejectedSales = 0;
+        let totalRevenue = 0;
+
+        filteredLogs.forEach(log => {
+            totalSpend += log.amountSpent;
+            totalReach += log.reach;
+            totalImpressions += log.impressions;
+            totalClicks += log.clicks;
+            totalMessages += log.messages;
+            totalLeads += log.leads;
+            totalApprovedSales += log.approvedSales;
+            totalRejectedSales += log.rejectedSales;
+            totalRevenue += log.revenueGenerated;
+        });
+
+        const costPerMessage = totalMessages > 0 ? totalSpend / totalMessages : 0;
+        const costPerLead = totalLeads > 0 ? totalSpend / totalLeads : 0;
+        const costPerSale = totalApprovedSales > 0 ? totalSpend / totalApprovedSales : 0;
+        const roas = totalSpend > 0 ? totalRevenue / totalSpend : 0;
+
+        return {
+            totalPages,
+            activePages,
+            totalCampaigns,
+            activeCampaigns,
+            totalCreatives,
+            totalSpend,
+            totalReach,
+            totalImpressions,
+            totalClicks,
+            totalMessages,
+            totalLeads,
+            totalApprovedSales,
+            totalRejectedSales,
+            totalRevenue,
+            costPerMessage,
+            costPerLead,
+            costPerSale,
+            roas
+        };
+    }, [pages, campaigns, filteredLogs, filterPageId, filterCampaignId, filterAgent, filterProcessedBy, filterCampStatus, currentUser]);
+
+    // Formatting helpers
+    const formatCurrency = (val) => '₱' + Math.round(val).toLocaleString();
+    const formatNumber = (val) => Math.round(val).toLocaleString();
+
+    // 10 Detailed Recharts Datasets
+    // 1, 2, 3, 4: Trends rollup by Date
+    const dateTrendData = useMemo(() => {
+        const groups = {};
+        filteredLogs.forEach(log => {
+            if (!groups[log.date]) {
+                groups[log.date] = { date: log.date, Spend: 0, Leads: 0, Sales: 0, Revenue: 0 };
+            }
+            groups[log.date].Spend += log.amountSpent;
+            groups[log.date].Leads += log.leads;
+            groups[log.date].Sales += log.approvedSales;
+            groups[log.date].Revenue += log.revenueGenerated;
+        });
+
+        return Object.keys(groups).sort().map(d => {
+            const parsed = new Date(d);
+            const label = parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            return {
+                name: label,
+                ...groups[d]
+            };
+        });
+    }, [filteredLogs]);
+
+    // 5: Page Performance Comparison
+    const pagePerformanceData = useMemo(() => {
+        const groups = {};
+        activePagesList.forEach(p => {
+            groups[p.id] = { name: p.name, Spend: 0, Revenue: 0 };
+        });
+
+        filteredLogs.forEach(log => {
+            const camp = campaigns.find(c => c.id === log.campaignId);
+            if (camp && groups[camp.pageId]) {
+                groups[camp.pageId].Spend += log.amountSpent;
+                groups[camp.pageId].Revenue += log.revenueGenerated;
+            }
+        });
+
+        return Object.values(groups).filter(g => g.Spend > 0 || g.Revenue > 0);
+    }, [activePagesList, campaigns, filteredLogs]);
+
+    // 6: Campaign Performance Comparison
+    const campaignPerformanceData = useMemo(() => {
+        const groups = {};
+        visibleCampaigns.forEach(c => {
+            groups[c.id] = { name: c.name.length > 20 ? c.name.substring(0, 20) + '...' : c.name, Spend: 0, Messages: 0, Leads: 0 };
+        });
+
+        filteredLogs.forEach(log => {
+            if (groups[log.campaignId]) {
+                groups[log.campaignId].Spend += log.amountSpent;
+                groups[log.campaignId].Messages += log.messages;
+                groups[log.campaignId].Leads += log.leads;
+            }
+        });
+
+        return Object.values(groups).filter(g => g.Spend > 0 || g.Leads > 0);
+    }, [visibleCampaigns, filteredLogs]);
+
+    // 7: Creative Performance Comparison
+    const creativePerformanceData = useMemo(() => {
+        const types = ['Image', 'Video', 'Carousel', 'Reel'];
+        const map = types.reduce((acc, t) => {
+            acc[t] = { name: t, Spend: 0, Leads: 0, Sales: 0 };
+            return acc;
+        }, {});
+
+        filteredLogs.forEach(log => {
+            const camp = campaigns.find(c => c.id === log.campaignId);
+            if (camp && map[camp.creativeType]) {
+                map[camp.creativeType].Spend += log.amountSpent;
+                map[camp.creativeType].Leads += log.leads;
+                map[camp.creativeType].Sales += log.approvedSales;
+            }
+        });
+
+        return Object.values(map).map(item => {
+            const cpl = item.Leads > 0 ? item.Spend / item.Leads : 0;
+            const cps = item.Sales > 0 ? item.Spend / item.Sales : 0;
+            return {
+                name: item.name,
+                "Cost Per Lead": Math.round(cpl),
+                "Cost Per Sale": Math.round(cps)
+            };
+        });
+    }, [campaigns, filteredLogs]);
+
+    // 8: Budget vs Revenue Comparison
+    const budgetVsRevenueData = useMemo(() => {
+        return visibleCampaigns.map(c => {
+            const rev = filteredLogs
+                .filter(l => l.campaignId === c.id)
+                .reduce((sum, l) => sum + l.revenueGenerated, 0);
+            return {
+                name: c.name.length > 20 ? c.name.substring(0, 20) + '...' : c.name,
+                "Target Budget": c.totalBudget,
+                "Revenue Generated": rev
+            };
+        }).filter(item => item["Target Budget"] > 0 || item["Revenue Generated"] > 0);
+    }, [visibleCampaigns, filteredLogs]);
+
+    // 9: Agent Performance Comparison
+    const agentPerformanceData = useMemo(() => {
+        const map = {};
+        agents.forEach(a => {
+            map[a] = { name: a, Spend: 0, Revenue: 0 };
+        });
+
+        filteredLogs.forEach(log => {
+            const camp = campaigns.find(c => c.id === log.campaignId);
+            if (camp && map[camp.agent]) {
+                map[camp.agent].Spend += log.amountSpent;
+                map[camp.agent].Revenue += log.revenueGenerated;
+            }
+        });
+
+        return Object.values(map).filter(item => item.Spend > 0 || item.Revenue > 0);
+    }, [agents, campaigns, filteredLogs]);
+
+    // 10: Monthly Performance Summary
+    const monthlyPerformanceData = useMemo(() => {
+        const map = {};
+        filteredLogs.forEach(log => {
+            const d = new Date(log.date);
+            const mLabel = d.toLocaleString('default', { month: 'short', year: 'numeric' });
+            if (!map[mLabel]) {
+                map[mLabel] = { name: mLabel, Spend: 0, Leads: 0, Revenue: 0 };
+            }
+            map[mLabel].Spend += log.amountSpent;
+            map[mLabel].Leads += log.leads;
+            map[mLabel].Revenue += log.revenueGenerated;
+        });
+        return Object.values(map);
+    }, [filteredLogs]);
+
+
+    // -- Modal Management structures --
+    // Page Modal
+    const [pageModalOpen, setPageModalOpen] = useState(false);
+    const [editingPage, setEditingPage] = useState(null);
+    const [pageFormName, setPageFormName] = useState('');
+    const [pageFormCategory, setPageFormCategory] = useState('');
+    const [pageFormAgent, setPageFormAgent] = useState('');
+    const [pageFormStatus, setPageFormStatus] = useState('Active');
+
+    const openPageForm = (pageToEdit = null) => {
+        if (pageToEdit) {
+            setEditingPage(pageToEdit);
+            setPageFormName(pageToEdit.name);
+            setPageFormCategory(pageToEdit.category);
+            setPageFormAgent(pageToEdit.agent);
+            setPageFormStatus(pageToEdit.status);
+        } else {
+            setEditingPage(null);
+            setPageFormName('');
+            setPageFormCategory('');
+            setPageFormAgent(currentUser.role === 'agent' ? currentUser.name : agents[0]);
+            setPageFormStatus('Active');
+        }
+        setPageModalOpen(true);
+    };
+
+    const handleSavePage = (e) => {
+        e.preventDefault();
+        if (!pageFormName.trim() || !pageFormCategory.trim() || !pageFormAgent) return;
+
+        let updatedPages;
+        if (editingPage) {
+            updatedPages = pages.map(p => p.id === editingPage.id ? { ...p, name: pageFormName.trim(), category: pageFormCategory.trim(), agent: pageFormAgent, status: pageFormStatus } : p);
+        } else {
+            const newP = {
+                id: `page-${Date.now()}`,
+                name: pageFormName.trim(),
+                category: pageFormCategory.trim(),
+                agent: pageFormAgent,
+                status: pageFormStatus,
+                isArchived: false
+            };
+            updatedPages = [...pages, newP];
+        }
+        setPages(updatedPages);
+        onSaveMetaAdsData(updatedPages, campaigns, performanceLogs);
+        setPageModalOpen(false);
+        setEditingPage(null);
+    };
+
+    // Campaign Modal
+    const [campModalOpen, setCampModalOpen] = useState(false);
+    const [editingCamp, setEditingCamp] = useState(null);
+    const [campFormPageId, setCampFormPageId] = useState('');
+    const [campFormName, setCampFormName] = useState('');
+    const [campFormDateStarted, setCampFormDateStarted] = useState('');
+    const [campFormDailyBudget, setCampFormDailyBudget] = useState('');
+    const [campFormTotalBudget, setCampFormTotalBudget] = useState('');
+    const [campFormNumCreatives, setCampFormNumCreatives] = useState('');
+    const [campFormCreativeType, setCampFormCreativeType] = useState('Image');
+    const [campFormStatus, setCampFormStatus] = useState('Active');
+    const [campFormAgent, setCampFormAgent] = useState('');
+    const [campFormProcessedBy, setCampFormProcessedBy] = useState('');
+
+    const openCampForm = (campToEdit = null) => {
+        const today = new Date().toISOString().split('T')[0];
+        const initialPage = activePagesList[0]?.id || '';
+        if (campToEdit) {
+            setEditingCamp(campToEdit);
+            setCampFormPageId(campToEdit.pageId);
+            setCampFormName(campToEdit.name);
+            setCampFormDateStarted(campToEdit.dateStarted);
+            setCampFormDailyBudget(campToEdit.dailyBudget.toString());
+            setCampFormTotalBudget(campToEdit.totalBudget.toString());
+            setCampFormNumCreatives(campToEdit.numCreatives.toString());
+            setCampFormCreativeType(campToEdit.creativeType);
+            setCampFormStatus(campToEdit.status);
+            setCampFormAgent(campToEdit.agent);
+            setCampFormProcessedBy(campToEdit.processedBy);
+        } else {
+            setEditingCamp(null);
+            setCampFormPageId(initialPage);
+            setCampFormName('');
+            setCampFormDateStarted(today);
+            setCampFormDailyBudget('150');
+            setCampFormTotalBudget('3000');
+            setCampFormNumCreatives('3');
+            setCampFormCreativeType('Image');
+            setCampFormStatus('Active');
+            setCampFormAgent(currentUser.role === 'agent' ? currentUser.name : (agents[0] || ''));
+            setCampFormProcessedBy(currentUser.name);
+        }
+        setCampModalOpen(true);
+    };
+
+    const handleSaveCamp = (e) => {
+        e.preventDefault();
+        if (!campFormPageId || !campFormName.trim() || !campFormDailyBudget || !campFormAgent) return;
+
+        const campData = {
+            pageId: campFormPageId,
+            name: campFormName.trim(),
+            dateStarted: campFormDateStarted,
+            dailyBudget: parseFloat(campFormDailyBudget) || 0,
+            totalBudget: parseFloat(campFormTotalBudget) || 0,
+            numCreatives: parseInt(campFormNumCreatives) || 0,
+            creativeType: campFormCreativeType,
+            status: campFormStatus,
+            agent: campFormAgent,
+            processedBy: campFormProcessedBy.trim() || currentUser.name
+        };
+
+        let updatedCampaigns;
+        if (editingCamp) {
+            updatedCampaigns = campaigns.map(c => c.id === editingCamp.id ? { ...c, ...campData } : c);
+        } else {
+            const newC = {
+                id: `camp-${Date.now()}`,
+                ...campData
+            };
+            updatedCampaigns = [...campaigns, newC];
+        }
+        setCampaigns(updatedCampaigns);
+        onSaveMetaAdsData(pages, updatedCampaigns, performanceLogs);
+        setCampModalOpen(false);
+        setEditingCamp(null);
+    };
+
+    // Performance Log Modal (Cumulative updating)
+    const [logModalOpen, setLogModalOpen] = useState(false);
+    const [editingLog, setEditingLog] = useState(null);
+    const [logFormCampId, setLogFormCampId] = useState('');
+    const [logFormDate, setLogFormDate] = useState('');
+    const [logFormAmountSpent, setLogFormAmountSpent] = useState('');
+    const [logFormReach, setLogFormReach] = useState('');
+    const [logFormImpressions, setLogFormImpressions] = useState('');
+    const [logFormClicks, setLogFormClicks] = useState('');
+    const [logFormMessages, setLogFormMessages] = useState('');
+    const [logFormLeads, setLogFormLeads] = useState('');
+    const [logFormApprovedSales, setLogFormApprovedSales] = useState('');
+    const [logFormRejectedSales, setLogFormRejectedSales] = useState('');
+    const [logFormRevenueGenerated, setLogFormRevenueGenerated] = useState('');
+
+    const openLogForm = (logToEdit = null, preselectedCampId = '') => {
+        const today = new Date().toISOString().split('T')[0];
+        const defaultCamp = preselectedCampId || visibleCampaigns[0]?.id || '';
+
+        if (logToEdit) {
+            setEditingLog(logToEdit);
+            setLogFormCampId(logToEdit.campaignId);
+            setLogFormDate(logToEdit.date);
+            setLogFormAmountSpent(logToEdit.amountSpent.toString());
+            setLogFormReach(logToEdit.reach.toString());
+            setLogFormImpressions(logToEdit.impressions.toString());
+            setLogFormClicks(logToEdit.clicks.toString());
+            setLogFormMessages(logToEdit.messages.toString());
+            setLogFormLeads(logToEdit.leads.toString());
+            setLogFormApprovedSales(logToEdit.approvedSales.toString());
+            setLogFormRejectedSales(logToEdit.rejectedSales.toString());
+            setLogFormRevenueGenerated(logToEdit.revenueGenerated.toString());
+        } else {
+            setEditingLog(null);
+            setLogFormCampId(defaultCamp);
+            setLogFormDate(today);
+            setLogFormAmountSpent('');
+            setLogFormReach('');
+            setLogFormImpressions('');
+            setLogFormClicks('');
+            setLogFormMessages('');
+            setLogFormLeads('');
+            setLogFormApprovedSales('');
+            setLogFormRejectedSales('');
+            setLogFormRevenueGenerated('');
+        }
+        setLogModalOpen(true);
+    };
+
+    const handleSaveLog = (e) => {
+        e.preventDefault();
+        if (!logFormCampId || !logFormAmountSpent || !logFormDate) return;
+
+        const logData = {
+            campaignId: logFormCampId,
+            date: logFormDate,
+            amountSpent: parseFloat(logFormAmountSpent) || 0,
+            reach: parseInt(logFormReach) || 0,
+            impressions: parseInt(logFormImpressions) || 0,
+            clicks: parseInt(logFormClicks) || 0,
+            messages: parseInt(logFormMessages) || 0,
+            leads: parseInt(logFormLeads) || 0,
+            approvedSales: parseInt(logFormApprovedSales) || 0,
+            rejectedSales: parseInt(logFormRejectedSales) || 0,
+            revenueGenerated: parseFloat(logFormRevenueGenerated) || 0
+        };
+
+        let updatedLogs;
+        if (editingLog) {
+            updatedLogs = performanceLogs.map(l => l.id === editingLog.id ? { ...l, ...logData } : l);
+        } else {
+            const newL = {
+                id: `log-${Date.now()}`,
+                ...logData
+            };
+            updatedLogs = [newL, ...performanceLogs];
+        }
+        setPerformanceLogs(updatedLogs);
+        onSaveMetaAdsData(pages, campaigns, updatedLogs);
+        setLogModalOpen(false);
+        setEditingLog(null);
+    };
+
+    const handleDeleteLog = (id) => {
+        if (confirm('Are you sure you want to delete this performance log?')) {
+            const updatedLogs = performanceLogs.filter(l => l.id !== id);
+            setPerformanceLogs(updatedLogs);
+            onSaveMetaAdsData(pages, campaigns, updatedLogs);
+        }
+    };
+
+    const handleArchivePage = (id, targetStatus) => {
+        const updatedPages = pages.map(p => p.id === id ? { ...p, isArchived: targetStatus } : p);
+        setPages(updatedPages);
+        onSaveMetaAdsData(updatedPages, campaigns, performanceLogs);
+    };
+
+    return (
+        <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+            <style>{`
+                .meta-subtabs {
+                    display: flex;
+                    gap: 0.75rem;
+                    margin-bottom: 2rem;
+                    border-bottom: 1px solid var(--border-color);
+                    padding-bottom: 0.5rem;
+                    overflow-x: auto;
+                }
+                .subtab-btn {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    padding: 0.65rem 1.25rem;
+                    font-size: 0.95rem;
+                    font-weight: 500;
+                    color: var(--text-secondary);
+                    background: none;
+                    border: none;
+                    cursor: pointer;
+                    border-radius: 8px;
+                    transition: all 0.2s;
+                    white-space: nowrap;
+                }
+                .subtab-btn:hover {
+                    background-color: rgba(0,0,0,0.05);
+                    color: var(--text-primary);
+                }
+                .subtab-btn.active {
+                    background-color: var(--primary-brand);
+                    color: white;
+                }
+                .meta-kpi-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+                    gap: 1rem;
+                    margin-bottom: 2.5rem;
+                }
+                .meta-kpi {
+                    background: white;
+                    border: 1px solid var(--border-color);
+                    box-shadow: var(--shadow-sm);
+                    border-radius: 12px;
+                    padding: 1.25rem;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+                    transition: all 0.2s;
+                }
+                .meta-kpi:hover {
+                    box-shadow: var(--shadow-md);
+                    transform: translateY(-2px);
+                }
+                .meta-kpi-head {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    color: var(--text-secondary);
+                    font-size: 0.85rem;
+                    font-weight: 500;
+                    margin-bottom: 0.5rem;
+                }
+                .meta-kpi-icon {
+                    background: var(--primary-brand-light);
+                    color: var(--primary-brand);
+                    padding: 6px;
+                    border-radius: 8px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .meta-kpi-value {
+                    font-size: 1.5rem;
+                    font-weight: 700;
+                    color: var(--text-primary);
+                }
+                .char-nav {
+                    display: flex;
+                    gap: 0.25rem;
+                    margin-bottom: 1.5rem;
+                    background: #e9ecef;
+                    padding: 4px;
+                    border-radius: 8px;
+                    width: fit-content;
+                }
+                .char-nav-btn {
+                    padding: 0.45rem 1rem;
+                    font-size: 0.85rem;
+                    font-weight: 600;
+                    color: var(--text-secondary);
+                    background: none;
+                    border: none;
+                    cursor: pointer;
+                    border-radius: 6px;
+                    transition: all 0.2s;
+                }
+                .char-nav-btn.active {
+                    background: white;
+                    color: var(--text-primary);
+                    box-shadow: var(--shadow-sm);
+                }
+                .chart-panel-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+                    gap: 1.5rem;
+                    margin-bottom: 3rem;
+                }
+                @media (max-width: 768px) {
+                    .chart-panel-grid {
+                        grid-template-columns: 1fr;
+                    }
+                }
+                .chart-container-card {
+                    background: white;
+                    padding: 1.5rem;
+                    border-radius: 12px;
+                    box-shadow: var(--shadow-sm);
+                    border: 1px solid var(--border-color);
+                }
+                .chart-container-card h3 {
+                    font-size: 1.1rem;
+                    margin-bottom: 1.25rem;
+                    font-weight: 600;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    color: var(--text-primary);
+                }
+                .badge-pill {
+                    padding: 0.25rem 0.6rem;
+                    border-radius: 9999px;
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                    line-height: 1;
+                    display: inline-block;
+                }
+                .badge-active { background: #d1fae5; color: #065f46; }
+                .badge-inactive { background: #f3f4f6; color: #374151; }
+                .badge-paused { background: #fef3c7; color: #92400e; }
+                .badge-completed { background: #dbeafe; color: #1e40af; }
+                .action-row {
+                    display: flex;
+                    gap: 0.5rem;
+                }
+                .d-flex-between {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 2rem;
+                }
+                .page-desc {
+                    color: var(--text-secondary);
+                    margin-top: -0.5rem;
+                    margin-bottom: 2rem;
+                    font-size: 0.95rem;
+                }
+            `}</style>
+
+            <div className="dashboard-title-bar">
+                <h1>Meta Ads Performance Tracking</h1>
+                <p className="dashboard-subtitle">Direct manual tracking, campaign spend, conversion funnels, and real-time ROAS monitoring</p>
+            </div>
+
+            {/* Navigation sub-tabs */}
+            <div className="meta-subtabs no-print">
+                <button className={`subtab-btn ${subTab === 'Dashboard' ? 'active' : ''}`} onClick={() => setSubTab('Dashboard')}><Icon path={ICONS.overview} /> Dashboard Overview</button>
+                <button className={`subtab-btn ${subTab === 'Pages' ? 'active' : ''}`} onClick={() => setSubTab('Pages')}><Icon path={ICONS.subscribers} /> Manage Facebook Pages</button>
+                <button className={`subtab-btn ${subTab === 'Campaigns' ? 'active' : ''}`} onClick={() => setSubTab('Campaigns')}><Icon path={ICONS.totalApplications} /> Campaign Management</button>
+                <button className={`subtab-btn ${subTab === 'Logs' ? 'active' : ''}`} onClick={() => setSubTab('Logs')}><Icon path={ICONS.accounting} /> Performance Logs Tracker</button>
+            </div>
+
+            {/* Sub-tab Rendering - Dashboard tab */}
+            {subTab === 'Dashboard' && (
+                <>
+                    {/* Filters bar */}
+                    <div className="card dashboard-filter-wrapper animate-slide-down no-print" style={{ marginBottom: '2rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+                            <span style={{ fontSize: '0.95rem', fontWeight: 'bold', display: 'flex', items: 'center', gap: '0.5rem' }}><Icon path={ICONS.calendar} /> Filters & Period Selector</span>
+                            <button className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }} onClick={resetFilters}>Reset Filters</button>
+                        </div>
+                        <div className="report-filters">
+                            <div className="form-group">
+                                <label>Facebook Page</label>
+                                <select className="form-control" value={filterPageId} onChange={e => setFilterPageId(e.target.value)}>
+                                    <option value="All">All FB Pages</option>
+                                    {activePagesList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Ad Campaign</label>
+                                <select className="form-control" value={filterCampaignId} onChange={e => setFilterCampaignId(e.target.value)}>
+                                    <option value="All">All Campaigns</option>
+                                    {visibleCampaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Assigned Agent</label>
+                                <select className="form-control" value={filterAgent} onChange={e => setFilterAgent(e.target.value)} disabled={currentUser.role === 'agent'}>
+                                    <option value="All">All Agents</option>
+                                    {agents.map(a => <option key={a} value={a}>{a}</option>)}
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Processed By</label>
+                                <select className="form-control" value={filterProcessedBy} onChange={e => setFilterProcessedBy(e.target.value)}>
+                                    <option value="All">All Workers</option>
+                                    {processedByOptions.map(p => <option key={p} value={p}>{p}</option>)}
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Campaign Status</label>
+                                <select className="form-control" value={filterCampStatus} onChange={e => setFilterCampStatus(e.target.value)}>
+                                    <option value="All">All Statuses</option>
+                                    <option value="Active">Active</option>
+                                    <option value="Paused">Paused</option>
+                                    <option value="Completed">Completed</option>
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>From Date</label>
+                                <input type="date" className="form-control" value={startDate} onChange={e => setStartDate(e.target.value)} />
+                            </div>
+                            <div className="form-group">
+                                <label>To Date</label>
+                                <input type="date" className="form-control" value={endDate} onChange={e => setEndDate(e.target.value)} />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* KPI Cards section */}
+                    <div className="meta-kpi-grid">
+                        <div className="meta-kpi">
+                            <div className="meta-kpi-head"><span>Total Pages</span><div className="meta-kpi-icon"><Globe style={{ width: 16, height: 16 }} /></div></div>
+                            <div className="meta-kpi-value">{kpis.totalPages}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Active Pages: <strong>{kpis.activePages}</strong></div>
+                        </div>
+                        <div className="meta-kpi">
+                            <div className="meta-kpi-head"><span>Total Campaigns</span><div className="meta-kpi-icon"><Layers style={{ width: 16, height: 16 }} /></div></div>
+                            <div className="meta-kpi-value">{kpis.totalCampaigns}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Active Campaigns: <strong>{kpis.activeCampaigns}</strong></div>
+                        </div>
+                        <div className="meta-kpi">
+                            <div className="meta-kpi-head"><span>Daily Creatives Running</span><div className="meta-kpi-icon"><Globe style={{ width: 16, height: 16 }} /></div></div>
+                            <div className="meta-kpi-value">{kpis.totalCreatives}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Across active accounts</div>
+                        </div>
+                        <div className="meta-kpi">
+                            <div className="meta-kpi-head"><span>Total Ad Spend</span><div className="meta-kpi-icon"><Icon path={ICONS.totalExpenses} /></div></div>
+                            <div className="meta-kpi-value" style={{ color: 'var(--accent-red)' }}>{formatCurrency(kpis.totalSpend)}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Aggregated marketing costs</div>
+                        </div>
+                        <div className="meta-kpi">
+                            <div className="meta-kpi-head"><span>Total Reach</span><div className="meta-kpi-icon"><Icon path={ICONS.subscribers} /></div></div>
+                            <div className="meta-kpi-value">{formatNumber(kpis.totalReach)}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Unique user impressions</div>
+                        </div>
+                        <div className="meta-kpi">
+                            <div className="meta-kpi-head"><span>Total Impressions</span><div className="meta-kpi-icon"><Icon path={ICONS.calendar} /></div></div>
+                            <div className="meta-kpi-value">{formatNumber(kpis.totalImpressions)}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Total visual deliveries</div>
+                        </div>
+                        <div className="meta-kpi">
+                            <div className="meta-kpi-head"><span>Total Messages Generated</span><div className="meta-kpi-icon"><Icon path={ICONS.commissionRequest} /></div></div>
+                            <div className="meta-kpi-value" style={{ color: 'var(--accent-blue)' }}>{formatNumber(kpis.totalMessages)}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Conversation conversions</div>
+                        </div>
+                        <div className="meta-kpi">
+                            <div className="meta-kpi-head"><span>Total Leads Formed</span><div className="meta-kpi-icon"><Icon path={ICONS.totalApplications} /></div></div>
+                            <div className="meta-kpi-value" style={{ color: '#8b5cf6' }}>{formatNumber(kpis.totalLeads)}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Interested prospects logged</div>
+                        </div>
+                        <div className="meta-kpi">
+                            <div className="meta-kpi-head"><span>Approved Sales Count</span><div className="meta-kpi-icon"><Icon path={ICONS.installedDelivered} /></div></div>
+                            <div className="meta-kpi-value" style={{ color: 'var(--accent-green)' }}>{formatNumber(kpis.totalApprovedSales)}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Rejected sales: <strong>{kpis.totalRejectedSales}</strong></div>
+                        </div>
+                        <div className="meta-kpi">
+                            <div className="meta-kpi-head"><span>Total Revenue Created</span><div className="meta-kpi-icon"><Icon path={ICONS.grossIncome} /></div></div>
+                            <div className="meta-kpi-value" style={{ color: 'var(--accent-green)' }}>{formatCurrency(kpis.totalRevenue)}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Commission & sales value</div>
+                        </div>
+                        <div className="meta-kpi">
+                            <div className="meta-kpi-head"><span>Cost Per Message (CPM)</span><div className="meta-kpi-icon"><Icon path={ICONS.payout} /></div></div>
+                            <div className="meta-kpi-value">{formatCurrency(kpis.costPerMessage)}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Spend per raw message click</div>
+                        </div>
+                        <div className="meta-kpi">
+                            <div className="meta-kpi-head"><span>Cost Per Lead (CPL)</span><div className="meta-kpi-icon"><Icon path={ICONS.payout} /></div></div>
+                            <div className="meta-kpi-value">{formatCurrency(kpis.costPerLead)}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Spend per prospective lead</div>
+                        </div>
+                        <div className="meta-kpi">
+                            <div className="meta-kpi-head"><span>Cost Per Sale (CPS)</span><div className="meta-kpi-icon"><Icon path={ICONS.payout} /></div></div>
+                            <div className="meta-kpi-value">{formatCurrency(kpis.costPerSale)}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Spend per successful installation</div>
+                        </div>
+                        <div className="meta-kpi" style={{ borderLeft: '4px solid var(--accent-green)' }}>
+                            <div className="meta-kpi-head"><span>Return on Ad Spend (ROAS)</span><div className="meta-kpi-icon"><Icon path={ICONS.performance} /></div></div>
+                            <div className="meta-kpi-value" style={{ color: 'var(--accent-green)' }}>{kpis.roas.toFixed(2)}x</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Revenue multiple of spend</div>
+                        </div>
+                    </div>
+
+                    {/* Chart Navigation header */}
+                    <div className="char-nav no-print">
+                        <button className={`char-nav-btn ${chartGroup === 'Trends' ? 'active' : ''}`} onClick={() => setChartGroup('Trends')}>Performance Trends</button>
+                        <button className={`char-nav-btn ${chartGroup === 'Comparisons' ? 'active' : ''}`} onClick={() => setChartGroup('Comparisons')}>Platform Comparisons</button>
+                        <button className={`char-nav-btn ${chartGroup === 'Insights' ? 'active' : ''}`} onClick={() => setChartGroup('Insights')}>Optimization Insights</button>
+                    </div>
+
+                    {/* Group 1: Performance Trends charts */}
+                    {chartGroup === 'Trends' && (
+                        <div className="chart-panel-grid">
+                            <div className="chart-container-card">
+                                <h3><Icon path={ICONS.performance} /> Ad Spend Trend</h3>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <AreaChart data={dateTrendData}>
+                                        <defs>
+                                            <linearGradient id="spendG" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#ef4444" stopOpacity={0.4}/>
+                                                <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="name" />
+                                        <YAxis />
+                                        <RechartsTooltip formatter={(v) => `₱${Number(v).toLocaleString()}`} />
+                                        <Area type="monotone" dataKey="Spend" stroke="#ef4444" strokeWidth={2} fillOpacity={1} fill="url(#spendG)" />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </div>
+                            <div className="chart-container-card">
+                                <h3><Icon path={ICONS.totalApplications} /> Ad Leads Trend</h3>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <RechartsBarChart data={dateTrendData}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="name" />
+                                        <YAxis />
+                                        <RechartsTooltip />
+                                        <Bar dataKey="Leads" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                                    </RechartsBarChart>
+                                </ResponsiveContainer>
+                            </div>
+                            <div className="chart-container-card">
+                                <h3><Icon path={ICONS.installedDelivered} /> Approved Sales Trend</h3>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <RechartsLineChart data={dateTrendData}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="name" />
+                                        <YAxis />
+                                        <RechartsTooltip />
+                                        <RechartsLine type="monotone" dataKey="Sales" stroke="#10b981" strokeWidth={3} activeDot={{ r: 8 }} />
+                                    </RechartsLineChart>
+                                </ResponsiveContainer>
+                            </div>
+                            <div className="chart-container-card">
+                                <h3><Icon path={ICONS.grossIncome} /> Revenue Trend</h3>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <AreaChart data={dateTrendData}>
+                                        <defs>
+                                            <linearGradient id="revG" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
+                                                <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="name" />
+                                        <YAxis />
+                                        <RechartsTooltip formatter={(v) => `₱${Number(v).toLocaleString()}`} />
+                                        <Area type="monotone" dataKey="Revenue" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#revG)" />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Group 2: Platform Comparisons */}
+                    {chartGroup === 'Comparisons' && (
+                        <div className="chart-panel-grid">
+                            <div className="chart-container-card">
+                                <h3><Globe style={{ width: 16, height: 16, marginRight: 6, display: 'inline' }} /> Facebook Page Performance</h3>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <RechartsBarChart data={pagePerformanceData}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="name" />
+                                        <YAxis />
+                                        <RechartsTooltip formatter={(v) => `₱${Number(v).toLocaleString()}`} />
+                                        <Legend />
+                                        <Bar dataKey="Spend" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                                        <Bar dataKey="Revenue" fill="#10b981" radius={[4, 4, 0, 0]} />
+                                    </RechartsBarChart>
+                                </ResponsiveContainer>
+                            </div>
+                            <div className="chart-container-card">
+                                <h3><Layers style={{ width: 16, height: 16, marginRight: 6, display: 'inline' }} /> Campaign Volume Performance</h3>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <RechartsBarChart data={campaignPerformanceData}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="name" />
+                                        <YAxis />
+                                        <RechartsTooltip />
+                                        <Legend />
+                                        <Bar dataKey="Messages" fill="#a855f7" radius={[4, 4, 0, 0]} />
+                                        <Bar dataKey="Leads" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                                    </RechartsBarChart>
+                                </ResponsiveContainer>
+                            </div>
+                            <div className="chart-container-card" style={{ gridColumn: '1 / -1' }}>
+                                <h3><Icon path={ICONS.grossIncome} /> Target Budget vs Actual Revenue</h3>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <RechartsBarChart data={budgetVsRevenueData}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="name" />
+                                        <YAxis />
+                                        <RechartsTooltip formatter={(v) => `₱${Number(v).toLocaleString()}`} />
+                                        <Legend />
+                                        <Bar dataKey="Target Budget" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                                        <Bar dataKey="Revenue Generated" fill="#10b981" radius={[4, 4, 0, 0]} />
+                                    </RechartsBarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Group 3: Insights */}
+                    {chartGroup === 'Insights' && (
+                        <div className="chart-panel-grid">
+                            <div className="chart-container-card">
+                                <h3><Globe style={{ width: 16, height: 16, marginRight: 6, display: 'inline' }} /> Creative Type cost ratios</h3>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <RechartsBarChart data={creativePerformanceData}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="name" />
+                                        <YAxis />
+                                        <RechartsTooltip formatter={(v) => `₱${Number(v).toLocaleString()}`} />
+                                        <Legend />
+                                        <Bar dataKey="Cost Per Lead" fill="#eab308" radius={[4, 4, 0, 0]} />
+                                        <Bar dataKey="Cost Per Sale" fill="#ec4899" radius={[4, 4, 0, 0]} />
+                                    </RechartsBarChart>
+                                </ResponsiveContainer>
+                            </div>
+                            <div className="chart-container-card">
+                                <h3><Icon path={ICONS.topAgent} /> Agent Resource Comparison</h3>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <RechartsBarChart data={agentPerformanceData}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="name" />
+                                        <YAxis />
+                                        <RechartsTooltip formatter={(v) => `₱${Number(v).toLocaleString()}`} />
+                                        <Legend />
+                                        <Bar dataKey="Spend" fill="#f97316" radius={[4, 4, 0, 0]} />
+                                        <Bar dataKey="Revenue" fill="#10b981" radius={[4, 4, 0, 0]} />
+                                    </RechartsBarChart>
+                                </ResponsiveContainer>
+                            </div>
+                            <div className="chart-container-card" style={{ gridColumn: '1 / -1' }}>
+                                <h3><Icon path={ICONS.calendar} /> Monthly Performance Summary</h3>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <RechartsBarChart data={monthlyPerformanceData}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="name" />
+                                        <YAxis />
+                                        <RechartsTooltip formatter={(v) => `₱${Number(v).toLocaleString()}`} />
+                                        <Legend />
+                                        <Bar dataKey="Spend" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                                        <Bar dataKey="Revenue" fill="#10b981" radius={[4, 4, 0, 0]} />
+                                    </RechartsBarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+                    )}
+                </>
+            )}
+
+            {/* Sub-tab Pages Management */}
+            {subTab === 'Pages' && (
+                <div className="card">
+                    <div className="d-flex-between">
+                        <div>
+                            <h2>Facebook Pages Registry</h2>
+                            <p className="page-desc">Add and monitor business pages connected with marketing allocations</p>
+                        </div>
+                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                            <label className="no-print" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                                <input type="checkbox" checked={showArchivedPages} onChange={e => setShowArchivedPages(e.target.checked)} />
+                                Show Archived Pages
+                            </label>
+                            <button className="btn btn-primary no-print" onClick={() => openPageForm(null)}>+ Add Facebook Page</button>
+                        </div>
+                    </div>
+
+                    <div className="table-responsive-wrapper">
+                        <table className="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Page Name</th>
+                                    <th>Category</th>
+                                    <th>Assigned Agent</th>
+                                    <th>Active Campaign Count</th>
+                                    <th>Status</th>
+                                    <th className="no-print">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {visiblePages.length === 0 ? (
+                                    <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2rem' }}>No Facebook Pages configured. Click "+ Add Facebook Page" to start.</td></tr>
+                                ) : (
+                                    visiblePages.map(page => {
+                                        const camps = campaigns.filter(c => c.pageId === page.id && c.status === 'Active').length;
+                                        return (
+                                            <tr key={page.id} style={page.isArchived ? { opacity: 0.6, background: '#f9fafb' } : {}}>
+                                                <td>
+                                                    <strong>{page.name}</strong>
+                                                    {page.isArchived && <span style={{ marginLeft: 8, fontSize: '0.7rem', verticalAlign: 'middle', background: '#e5e7eb', color: '#1f2937', padding: '2px 6px', borderRadius: '4px' }}>Archived</span>}
+                                                </td>
+                                                <td>{page.category}</td>
+                                                <td>{page.agent}</td>
+                                                <td>{camps} Active</td>
+                                                <td>
+                                                    <span className={`badge-pill ${page.status === 'Active' ? 'badge-active' : 'badge-inactive'}`}>
+                                                        {page.status}
+                                                    </span>
+                                                </td>
+                                                <td className="no-print">
+                                                    <div className="action-row">
+                                                        <button className="btn-icon" onClick={() => openPageForm(page)} title="Edit Page"><Icon path="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z"/></button>
+                                                        {page.isArchived ? (
+                                                            <button className="btn-icon" onClick={() => handleArchivePage(page.id, false)} title="Unarchive Page"><Icon path="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10H7v-2h10v2z" /></button>
+                                                        ) : (
+                                                            <button className="btn-icon btn-icon-danger" onClick={() => handleArchivePage(page.id, true)} title="Archive Page"><Icon path="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12z"/></button>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
+            {/* Sub-tab Campaign Management */}
+            {subTab === 'Campaigns' && (
+                <div className="card">
+                    <div className="d-flex-between">
+                        <div>
+                            <h2>Ad Campaign Directory</h2>
+                            <p className="page-desc font-normal">Manage marketing campaign budgets, assignments, and check running progress</p>
+                        </div>
+                        <button className="btn btn-primary no-print" onClick={() => openCampForm(null)}>+ Launch New Campaign</button>
+                    </div>
+
+                    <div className="table-responsive-wrapper">
+                        <table className="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Campaign Details</th>
+                                    <th>Facebook Page</th>
+                                    <th>Started</th>
+                                    <th>Budget Parameters</th>
+                                    <th>Creatives</th>
+                                    <th>Status</th>
+                                    <th>Assignments</th>
+                                    <th className="no-print">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {visibleCampaigns.length === 0 ? (
+                                    <tr><td colSpan={8} style={{ textAlign: 'center', padding: '2rem' }}>No active campaigns configured. Click "+ Launch New Campaign" to start.</td></tr>
+                                ) : (
+                                    visibleCampaigns.map(camp => {
+                                        const page = pages.find(p => p.id === camp.pageId);
+                                        const spend = performanceLogs.filter(l => l.campaignId === camp.id).reduce((sum, l) => sum + l.amountSpent, 0);
+                                        const rev = performanceLogs.filter(l => l.campaignId === camp.id).reduce((sum, l) => sum + l.revenueGenerated, 0);
+                                        const roas = spend > 0 ? (rev / spend).toFixed(1) + 'x' : '0.0x';
+
+                                        return (
+                                            <tr key={camp.id}>
+                                                <td>
+                                                    <strong>{camp.name}</strong>
+                                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                                                        Spend: {formatCurrency(spend)} | ROAS: <strong style={{ color: 'var(--accent-green)' }}>{roas}</strong>
+                                                    </div>
+                                                </td>
+                                                <td>{page ? page.name : 'Unknown Page'}</td>
+                                                <td style={{ whiteSpace: 'nowrap' }}>{formatDate(camp.dateStarted)}</td>
+                                                <td>
+                                                    <div style={{ fontSize: '0.85rem' }}>Daily: <strong>{formatCurrency(camp.dailyBudget)}</strong></div>
+                                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Totalcap: {formatCurrency(camp.totalBudget)}</div>
+                                                </td>
+                                                <td>
+                                                    <strong>{camp.numCreatives}</strong>
+                                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{camp.creativeType}</div>
+                                                </td>
+                                                <td>
+                                                    <span className={`badge-pill ${
+                                                        camp.status === 'Active' ? 'badge-active' :
+                                                        camp.status === 'Paused' ? 'badge-paused' : 'badge-completed'
+                                                    }`}>
+                                                        {camp.status}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div style={{ fontSize: '0.85rem' }}>Agent: <strong>{camp.agent}</strong></div>
+                                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>By: {camp.processedBy}</div>
+                                                </td>
+                                                <td className="no-print">
+                                                    <div className="action-row">
+                                                        <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => openLogForm(null, camp.id)}>+ Log Result</button>
+                                                        <button className="btn-icon" onClick={() => openCampForm(camp)} title="Edit Campaign"><Icon path="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z"/></button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
+            {/* Sub-tab Performance Logs */}
+            {subTab === 'Logs' && (
+                <div className="card">
+                    <div className="d-flex-between">
+                        <div>
+                            <h2>Campaign Performance Logs</h2>
+                            <p className="page-desc">Review and audit daily or weekly manual advertising conversion entries</p>
+                        </div>
+                        <button className="btn btn-primary no-print" onClick={() => openLogForm(null)}>+ Log Results Entry</button>
+                    </div>
+
+                    <div className="table-responsive-wrapper">
+                        <table className="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Campaign</th>
+                                    <th>Budget Spent</th>
+                                    <th>Scope (Reach & Imps)</th>
+                                    <th>Visits (Clicks / Messages)</th>
+                                    <th>Leads Formed</th>
+                                    <th>Conversions (App / Rej)</th>
+                                    <th>Gross Revenue</th>
+                                    <th className="no-print">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredLogs.length === 0 ? (
+                                    <tr><td colSpan={9} style={{ textAlign: 'center', padding: '2rem' }}>No results logged for the active filters. Click "+ Log Results Entry" to record results.</td></tr>
+                                ) : (
+                                    filteredLogs.map(log => {
+                                        const camp = campaigns.find(c => c.id === log.campaignId);
+                                        return (
+                                            <tr key={log.id}>
+                                                <td style={{ whiteSpace: 'nowrap' }}><strong>{formatDate(log.date)}</strong></td>
+                                                <td>{camp ? camp.name : 'Unknown Campaign'}</td>
+                                                <td style={{ color: 'var(--accent-red)' }}><strong>{formatCurrency(log.amountSpent)}</strong></td>
+                                                <td>
+                                                    <div style={{ fontSize: '0.85rem' }}>Reach: {formatNumber(log.reach)}</div>
+                                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Imps: {formatNumber(log.impressions)}</div>
+                                                </td>
+                                                <td>
+                                                    <div style={{ fontSize: '0.85rem' }}>Clicks: {formatNumber(log.clicks)}</div>
+                                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Msgs: {formatNumber(log.messages)}</div>
+                                                </td>
+                                                <td style={{ color: '#8b5cf6' }}><strong>{formatNumber(log.leads)}</strong></td>
+                                                <td>
+                                                    <div style={{ fontSize: '0.85rem', color: 'var(--accent-green)' }}>App: {log.approvedSales}</div>
+                                                    <div style={{ fontSize: '0.75rem', color: 'var(--accent-red)' }}>Rej: {log.rejectedSales}</div>
+                                                </td>
+                                                <td style={{ color: 'var(--accent-green)' }}><strong>{formatCurrency(log.revenueGenerated)}</strong></td>
+                                                <td className="no-print">
+                                                    <div className="action-row">
+                                                        <button className="btn-icon" onClick={() => openLogForm(log)} title="Edit Log"><Icon path="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z"/></button>
+                                                        <button className="btn-icon btn-icon-danger" onClick={() => handleDeleteLog(log.id)} title="Delete Log"><Icon path="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12z"/></button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
+
+            {/* --- Modals Rendering --- */}
+
+            {/* Facebook Page Modal */}
+            {pageModalOpen && (
+                <div className="modal-backdrop" onClick={() => setPageModalOpen(false)}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()}>
+                        <h2>{editingPage ? 'Edit Facebook Page' : 'Add Facebook Page'}</h2>
+                        <form onSubmit={handleSavePage}>
+                            <div className="form-group">
+                                <label>Page Name *</label>
+                                <input type="text" className="form-control" placeholder="e.g. DITO HOME WIFI - USER" value={pageFormName} onChange={e => setPageFormName(e.target.value)} required />
+                            </div>
+                            <div className="form-group">
+                                <label>Category *</label>
+                                <input type="text" className="form-control" placeholder="e.g. Telecommunications, Home Wifi" value={pageFormCategory} onChange={e => setPageFormCategory(e.target.value)} required />
+                            </div>
+                            <div className="form-group">
+                                <label>Assigned Agent *</label>
+                                <select className="form-control" value={pageFormAgent} onChange={e => setPageFormAgent(e.target.value)} required>
+                                    {agents.map(a => <option key={a} value={a}>{a}</option>)}
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Page Status *</label>
+                                <select className="form-control" value={pageFormStatus} onChange={e => setPageFormStatus(e.target.value)} required>
+                                    <option value="Active">Active</option>
+                                    <option value="Inactive">Inactive</option>
+                                </select>
+                            </div>
+                            <div className="modal-actions">
+                                <button type="button" className="btn btn-secondary" onClick={() => setPageModalOpen(false)}>Cancel</button>
+                                <button type="submit" className="btn btn-primary">Save Changes</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Campaign Modal */}
+            {campModalOpen && (
+                <div className="modal-backdrop" onClick={() => setCampModalOpen(false)}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()}>
+                        <h2>{editingCamp ? 'Edit Ad Campaign' : 'Launch New Campaign'}</h2>
+                        <form onSubmit={handleSaveCamp}>
+                            <div className="form-group">
+                                <label>Facebook Page Location *</label>
+                                <select className="form-control" value={campFormPageId} onChange={e => setCampFormPageId(e.target.value)} required>
+                                    {activePagesList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Campaign Name *</label>
+                                <input type="text" className="form-control" placeholder="e.g. March Promos, Home Wireless Launch" value={campFormName} onChange={e => setCampFormName(e.target.value)} required />
+                            </div>
+                            <div className="form-group">
+                                <label>Date Started</label>
+                                <input type="date" className="form-control" value={campFormDateStarted} onChange={e => setCampFormDateStarted(e.target.value)} />
+                            </div>
+                            <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div>
+                                    <label>Daily Budget (₱) *</label>
+                                    <input type="number" step="any" className="form-control" value={campFormDailyBudget} onChange={e => setCampFormDailyBudget(e.target.value)} required />
+                                </div>
+                                <div>
+                                    <label>Total Cap Budget (₱) *</label>
+                                    <input type="number" step="any" className="form-control" value={campFormTotalBudget} onChange={e => setCampFormTotalBudget(e.target.value)} required />
+                                </div>
+                            </div>
+                            <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div>
+                                    <label>Number of Creatives *</label>
+                                    <input type="number" className="form-control" value={campFormNumCreatives} onChange={e => setCampFormNumCreatives(e.target.value)} required />
+                                </div>
+                                <div>
+                                    <label>Creative Showcase Type</label>
+                                    <select className="form-control" value={campFormCreativeType} onChange={e => setCampFormCreativeType(e.target.value as any)}>
+                                        <option value="Image">Image</option>
+                                        <option value="Video">Video</option>
+                                        <option value="Carousel">Carousel</option>
+                                        <option value="Reel">Reel</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="form-group">
+                                <label>Assigned Campaign Agent *</label>
+                                <select className="form-control" value={campFormAgent} onChange={e => setCampFormAgent(e.target.value)} required>
+                                    {agents.map(a => <option key={a} value={a}>{a}</option>)}
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Campaign Status</label>
+                                <select className="form-control" value={campFormStatus} onChange={e => setCampFormStatus(e.target.value)}>
+                                    <option value="Active">Active</option>
+                                    <option value="Paused">Paused</option>
+                                    <option value="Completed">Completed</option>
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Processed By Worker</label>
+                                <input type="text" className="form-control" placeholder="Workers name" value={campFormProcessedBy} onChange={e => setCampFormProcessedBy(e.target.value)} />
+                            </div>
+                            <div className="modal-actions">
+                                <button type="button" className="btn btn-secondary" onClick={() => setCampModalOpen(false)}>Cancel</button>
+                                <button type="submit" className="btn btn-primary">Save Changes</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Performance results log Modal */}
+            {logModalOpen && (
+                <div className="modal-backdrop" onClick={() => setLogModalOpen(false)}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()}>
+                        <h2>{editingLog ? 'Edit Performance Log Entry' : 'Add Cumulative/Periodic Log Results'}</h2>
+                        <form onSubmit={handleSaveLog}>
+                            <div className="form-group">
+                                <label>Target Campaign *</label>
+                                <select className="form-control" value={logFormCampId} onChange={e => setLogFormCampId(e.target.value)} required>
+                                    {visibleCampaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Result Logging Date *</label>
+                                <input type="date" className="form-control" value={logFormDate} onChange={e => setLogFormDate(e.target.value)} required />
+                            </div>
+                            <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div>
+                                    <label>Amount Spent (₱) *</label>
+                                    <input type="number" step="any" className="form-control" placeholder="Ad spend budget" value={logFormAmountSpent} onChange={e => setLogFormAmountSpent(e.target.value)} required />
+                                </div>
+                                <div>
+                                    <label>Reach *</label>
+                                    <input type="number" className="form-control" placeholder="Users reached" value={logFormReach} onChange={e => setLogFormReach(e.target.value)} required />
+                                </div>
+                            </div>
+                            <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div>
+                                    <label>Impressions *</label>
+                                    <input type="number" className="form-control" placeholder="Views" value={logFormImpressions} onChange={e => setLogFormImpressions(e.target.value)} required />
+                                </div>
+                                <div>
+                                    <label>Clicks *</label>
+                                    <input type="number" className="form-control" placeholder="Ad Clicks" value={logFormClicks} onChange={e => setLogFormClicks(e.target.value)} required />
+                                </div>
+                            </div>
+                            <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div>
+                                    <label>Conversation Messages *</label>
+                                    <input type="number" className="form-control" placeholder="Threads" value={logFormMessages} onChange={e => setLogFormMessages(e.target.value)} required />
+                                </div>
+                                <div>
+                                    <label>Leads Formed *</label>
+                                    <input type="number" className="form-control" placeholder="Qualified lines" value={logFormLeads} onChange={e => setLogFormLeads(e.target.value)} required />
+                                </div>
+                            </div>
+                            <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div>
+                                    <label>Approved Sales *</label>
+                                    <input type="number" className="form-control" placeholder="Installed" value={logFormApprovedSales} onChange={e => setLogFormApprovedSales(e.target.value)} required />
+                                </div>
+                                <div>
+                                    <label>Rejected Sales *</label>
+                                    <input type="number" className="form-control" placeholder="Cancelled" value={logFormRejectedSales} onChange={e => setLogFormRejectedSales(e.target.value)} required />
+                                </div>
+                            </div>
+                            <div className="form-group">
+                                <label>Revenue Generated (₱) *</label>
+                                <input type="number" step="any" className="form-control" placeholder="Sales value multiple" value={logFormRevenueGenerated} onChange={e => setLogFormRevenueGenerated(e.target.value)} required />
+                            </div>
+                            <div className="modal-actions">
+                                <button type="button" className="btn btn-secondary" onClick={() => setLogModalOpen(false)}>Cancel</button>
+                                <button type="submit" className="btn btn-primary">Save Changes</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+        </motion.div>
+    );
+};
+
 const App = () => {
     const [currentUser, setCurrentUser] = useState(() => { try { return JSON.parse(localStorage.getItem('currentUser')); } catch { return null; } });
     const [activeMenu, setActiveMenu] = useState('Overview');
@@ -1255,13 +2741,35 @@ const App = () => {
     const [error, setError] = useState(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+    const [metaPages, setMetaPages] = useState(() => {
+        try {
+            const saved = localStorage.getItem('hotech_meta_pages');
+            if (saved) return JSON.parse(saved);
+        } catch {}
+        return [];
+    });
+    const [metaCampaigns, setMetaCampaigns] = useState(() => {
+        try {
+            const saved = localStorage.getItem('hotech_meta_campaigns');
+            if (saved) return JSON.parse(saved);
+        } catch {}
+        return [];
+    });
+    const [metaLogs, setMetaLogs] = useState(() => {
+        try {
+            const saved = localStorage.getItem('hotech_meta_logs');
+            if (saved) return JSON.parse(saved);
+        } catch {}
+        return [];
+    });
+
     useEffect(() => {
         if (!currentUser) { setIsLoading(false); return; }
         const fetchData = async () => {
             setIsLoading(true); setError(null);
             try {
                 // Mock data loading if offline or just for structure, usually fetch from GOOGLE_SCRIPT_URL
-                // For this environment, we'll initialize with empty or mock if needed, but let's try fetch
+                // For this environment, we'll initialize with empty or mock if needed, but let'll try fetch
                 const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=readAll`);
                 if (!response.ok) throw new Error('Network response was not ok');
                 const data = await response.json();
@@ -1278,6 +2786,50 @@ const App = () => {
                     date: normalizeDateToYYYYMMDD(item.date),
                     amount: parseFloat(item.amount) || 0
                 })));
+
+                // Safely search for "Meta Ads" worksheet entries from lower-cased and plain keys
+                const metaAdsRows = data["meta ads"] || data["metaads"] || data["Meta Ads"] || data["metaAds"] || null;
+                if (metaAdsRows && Array.isArray(metaAdsRows)) {
+                    const loadedPages = metaAdsRows.filter(r => r.type === 'page').map(item => ({
+                        id: item.id || `page-${Date.now()}`,
+                        name: item.name || '',
+                        category: item.category || '',
+                        agent: item.agent || '',
+                        status: item.status || 'Active',
+                        isArchived: item.isArchived === true || item.isArchived === 'true'
+                    }));
+                    const loadedCampaigns = metaAdsRows.filter(r => r.type === 'campaign').map(item => ({
+                        id: item.id || `camp-${Date.now()}`,
+                        pageId: item.pageId || '',
+                        name: item.name || '',
+                        dateStarted: normalizeDateToYYYYMMDD(item.dateStarted),
+                        dailyBudget: parseFloat(item.dailyBudget) || 0,
+                        totalBudget: parseFloat(item.totalBudget) || 0,
+                        numCreatives: parseInt(item.numCreatives) || 0,
+                        creativeType: item.creativeType || 'Image',
+                        status: item.status || 'Active',
+                        agent: item.agent || '',
+                        processedBy: item.processedBy || ''
+                    }));
+                    const loadedLogs = metaAdsRows.filter(r => r.type === 'log').map(item => ({
+                        id: item.id || `log-${Date.now()}`,
+                        campaignId: item.campaignId || '',
+                        date: normalizeDateToYYYYMMDD(item.date),
+                        amountSpent: parseFloat(item.amountSpent) || 0,
+                        reach: parseInt(item.reach) || 0,
+                        impressions: parseInt(item.impressions) || 0,
+                        clicks: parseInt(item.clicks) || 0,
+                        messages: parseInt(item.messages) || 0,
+                        leads: parseInt(item.leads) || 0,
+                        approvedSales: parseInt(item.approvedSales) || 0,
+                        rejectedSales: parseInt(item.rejectedSales) || 0,
+                        revenueGenerated: parseFloat(item.revenueGenerated) || 0
+                    }));
+
+                    setMetaPages(loadedPages);
+                    setMetaCampaigns(loadedCampaigns);
+                    setMetaLogs(loadedLogs);
+                }
             } catch (e) { 
                 console.log('Using local state or failed fetch', e);
             } finally { setIsLoading(false); }
@@ -1315,6 +2867,25 @@ const App = () => {
         saveDataToSheet(newExps, 'Expenses');
     };
 
+    const handleSaveMetaAdsData = (newPages, newCampaigns, newLogs) => {
+        setMetaPages(newPages);
+        setMetaCampaigns(newCampaigns);
+        setMetaLogs(newLogs);
+
+        localStorage.setItem('hotech_meta_pages', JSON.stringify(newPages));
+        localStorage.setItem('hotech_meta_campaigns', JSON.stringify(newCampaigns));
+        localStorage.setItem('hotech_meta_logs', JSON.stringify(newLogs));
+
+        // Flatten structured records to write into a single Google Sheet worksheet called "Meta Ads"
+        const rows = [
+            ...newPages.map(p => ({ type: 'page', id: p.id, name: p.name, category: p.category, agent: p.agent, status: p.status, isArchived: p.isArchived })),
+            ...newCampaigns.map(c => ({ type: 'campaign', id: c.id, pageId: c.pageId, name: c.name, dateStarted: c.dateStarted, dailyBudget: c.dailyBudget, totalBudget: c.totalBudget, numCreatives: c.numCreatives, creativeType: c.creativeType, status: c.status, agent: c.agent, processedBy: c.processedBy })),
+            ...newLogs.map(l => ({ type: 'log', id: l.id, campaignId: l.campaignId, date: l.date, amountSpent: l.amountSpent, reach: l.reach, impressions: l.impressions, clicks: l.clicks, messages: l.messages, leads: l.leads, approvedSales: l.approvedSales, rejectedSales: l.rejectedSales, revenueGenerated: l.revenueGenerated }))
+        ];
+
+        saveDataToSheet(rows, 'Meta Ads');
+    };
+
     const handleLogin = (user) => { localStorage.setItem('currentUser', JSON.stringify(user)); setCurrentUser(user); setActiveMenu('Overview'); };
     const handleLogout = () => { localStorage.removeItem('currentUser'); setCurrentUser(null); };
 
@@ -1335,6 +2906,16 @@ const App = () => {
             case 'Agent Performance': return <AgentPerformance subscribers={subscribers} agents={agents} />;
             case 'Payout Reports': return <PayoutReports subscribers={subscribers} agents={agents} currentUser={currentUser} onSaveSubscriber={handleSaveSubscriber} />;
             case 'Accounting & Financial': return <AccountingFinancial subscribers={subscribers} expenses={expenses} onSaveExpense={handleSaveExpense} onDeleteExpense={handleDeleteExpense} />;
+            case 'Meta Ads Monitoring': return (
+                <MetaAds 
+                    agents={agents} 
+                    currentUser={currentUser} 
+                    initialPages={metaPages}
+                    initialCampaigns={metaCampaigns}
+                    initialLogs={metaLogs}
+                    onSaveMetaAdsData={handleSaveMetaAdsData}
+                />
+            );
             default: return null;
         }
     };
