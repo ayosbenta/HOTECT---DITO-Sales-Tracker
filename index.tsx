@@ -1298,27 +1298,33 @@ const MetaAds = ({ agents, currentUser, initialPages = [], initialCampaigns = []
     const [chartGroup, setChartGroup] = useState('Trends'); // 'Trends' | 'Comparisons' | 'Insights'
     const [showArchivedPages, setShowArchivedPages] = useState(false);
 
+    // Check if there is already any existing configuration from parent (e.g. from Google Sheets or localStorage)
+    const hasSomeData = (initialPages && initialPages.length > 0) || (initialCampaigns && initialCampaigns.length > 0) || (initialLogs && initialLogs.length > 0);
+
     // Persisted Data layers
-    const [pages, setPages] = useState(() => initialPages.length > 0 ? initialPages : DEFAULT_PAGES);
-    const [campaigns, setCampaigns] = useState(() => initialCampaigns.length > 0 ? initialCampaigns : DEFAULT_CAMPAIGNS);
-    const [performanceLogs, setPerformanceLogs] = useState(() => initialLogs.length > 0 ? initialLogs : DEFAULT_LOGS);
+    const [pages, setPages] = useState(() => hasSomeData ? initialPages : DEFAULT_PAGES);
+    const [campaigns, setCampaigns] = useState(() => hasSomeData ? initialCampaigns : DEFAULT_CAMPAIGNS);
+    const [performanceLogs, setPerformanceLogs] = useState(() => hasSomeData ? initialLogs : DEFAULT_LOGS);
 
     // Synchronize props dynamically when loaded from Google Sheet
     useEffect(() => {
-        if (initialPages && initialPages.length > 0) {
-            setPages(initialPages);
+        const currentDataExists = (initialPages && initialPages.length > 0) || (initialCampaigns && initialCampaigns.length > 0) || (initialLogs && initialLogs.length > 0);
+        if (currentDataExists) {
+            setPages(initialPages || []);
         }
     }, [initialPages]);
 
     useEffect(() => {
-        if (initialCampaigns && initialCampaigns.length > 0) {
-            setCampaigns(initialCampaigns);
+        const currentDataExists = (initialPages && initialPages.length > 0) || (initialCampaigns && initialCampaigns.length > 0) || (initialLogs && initialLogs.length > 0);
+        if (currentDataExists) {
+            setCampaigns(initialCampaigns || []);
         }
     }, [initialCampaigns]);
 
     useEffect(() => {
-        if (initialLogs && initialLogs.length > 0) {
-            setPerformanceLogs(initialLogs);
+        const currentDataExists = (initialPages && initialPages.length > 0) || (initialCampaigns && initialCampaigns.length > 0) || (initialLogs && initialLogs.length > 0);
+        if (currentDataExists) {
+            setPerformanceLogs(initialLogs || []);
         }
     }, [initialLogs]);
 
