@@ -65,16 +65,45 @@ const subscriberStatuses = [
 const payoutStatuses = ['PENDING', 'ON REQUEST', 'PAID'];
 
 // --- HELPERS ---
-const calculateCommission = (subscriber) => {
+const isSamePerson = (nameA, nameB) => {
+    if (!nameA || !nameB) return false;
+    const clean = (n) => n.toLowerCase().trim()
+        .replace(/-?\s*boosting/g, '')
+        .replace(/-?\s*personal/g, '')
+        .replace(/jacky/g, 'jackie')
+        .replace(/\s+/g, '');
+    return clean(nameA) === clean(nameB);
+};
+
+const calculateCommission = (subscriber, userName = undefined) => {
     if (!subscriber || !subscriber.agent) return 0;
-    switch (subscriber.agent) {
-        case 'Ryan': return 1200;
-        case 'Leah - Boosting': return 600;
-        case 'Jackie - Boosting': return 600;
-        case 'Jackie - Personal': return 1200;
-        case 'Lyn - Boosting': return 600;
-        case 'Lyn Personal': return 1200;
-        default: return 0;
+    
+    const isBoosting = subscriber.agent.toLowerCase().includes('boosting');
+    
+    if (userName) {
+        let earned = 0;
+        if (isBoosting) {
+            // Boosting Sales – ₱200 for the Agent and ₱200 for the Processor
+            if (isSamePerson(subscriber.agent, userName)) {
+                earned += 200;
+            }
+            if (isSamePerson(subscriber.processedBy, userName)) {
+                earned += 200;
+            }
+        } else {
+            // Personal Sales – ₱1,200 commission (goes to Agent)
+            if (isSamePerson(subscriber.agent, userName)) {
+                earned += 1200;
+            }
+        }
+        return earned;
+    } else {
+        // Return total commission (all stakeholders combined) for the subscriber record
+        if (isBoosting) {
+            return 400; // ₱200 plus ₱200
+        } else {
+            return 1200; // ₱1200
+        }
     }
 };
 
@@ -463,7 +492,7 @@ const Overview = ({ subscribers, expenses, agents, currentUser }) => {
         const totalInstalledDelivered = installedSubs.length;
         const totalOnTheWayReady = inRangeSubs.filter(sub => ['On the Way', 'Ready for Installation'].includes(sub.status)).length;
         const totalRejected = inRangeSubs.filter(sub => sub.status === 'Rejected').length;
-        const commissionOnRequest = installedSubs.filter(sub => sub.payoutStatus === 'ON REQUEST').reduce((sum, sub) => sum + 1200, 0);
+        const commissionOnRequest = installedSubs.filter(sub => sub.payoutStatus === 'ON REQUEST').reduce((sum, sub) => sum + calculateCommission(sub), 0);
         const totalAgentCommissions = installedSubs.reduce((sum, sub) => sum + calculateCommission(sub), 0);
         const grossIncome = totalInstalledDelivered * 1200;
         const totalExpenses = inRangeExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
@@ -539,7 +568,10 @@ const Overview = ({ subscribers, expenses, agents, currentUser }) => {
         const onRequestPayouts = installed.filter(sub => sub.payoutStatus === 'ON REQUEST').length;
         const paidSubs = installed.filter(sub => sub.payoutStatus === 'PAID');
         const completedPayouts = paidSubs.length;
-        const totalCompletedCommission = paidSubs.reduce((sum, sub) => sum + calculateCommission(sub), 0);
+        
+        const allAgentInvolvedInstalled = subscribers.filter(s => ['Installed', 'Delivered'].includes(s.status) && (isSamePerson(s.agent, currentUser.name) || isSamePerson(s.processedBy, currentUser.name)));
+        const paidInvolved = allAgentInvolvedInstalled.filter(sub => sub.payoutStatus === 'PAID');
+        const totalCompletedCommission = paidInvolved.reduce((sum, sub) => sum + calculateCommission(sub, currentUser.name), 0);
         
         const now = new Date();
         const thisMonthApps = visibleSubscribers.filter(sub => {
@@ -551,7 +583,7 @@ const Overview = ({ subscribers, expenses, agents, currentUser }) => {
         const conversionRate = thisMonthApps.length > 0 ? (installedThisMonth / thisMonthApps.length) * 100 : 0;
         
         // --- NEW KPI CALCULATIONS FOR AGENT ---
-        const projectedCommissions = installed.filter(sub => sub.payoutStatus !== 'PAID').reduce((sum, sub) => sum + calculateCommission(sub), 0);
+        const projectedCommissions = allAgentInvolvedInstalled.filter(sub => sub.payoutStatus !== 'PAID').reduce((sum, sub) => sum + calculateCommission(sub, currentUser.name), 0);
         const overallConversion = totalSubscribers > 0 ? (totalInstalled / totalSubscribers) * 100 : 0;
         
         let agentTotalDays = 0;
@@ -605,10 +637,13 @@ const Overview = ({ subscribers, expenses, agents, currentUser }) => {
         const now = new Date();
         const labels = [], commissions = [], expenseData = [];
         
-        const getCommission = (subs, startDate, endDate) => subs.filter(s => {
-            const d = new Date(s.activationDate);
-            return ['Installed', 'Delivered'].includes(s.status) && d >= startDate && d <= endDate;
-        }).reduce((sum, s) => sum + calculateCommission(s), 0);
+        const getCommission = (subs, startDate, endDate) => {
+            const activeSubs = currentUser.role === 'agent' ? subscribers : subs;
+            return activeSubs.filter(s => {
+                const d = new Date(s.activationDate);
+                return ['Installed', 'Delivered'].includes(s.status) && d >= startDate && d <= endDate;
+            }).reduce((sum, s) => sum + (currentUser.role === 'agent' ? calculateCommission(s, currentUser.name) : calculateCommission(s)), 0);
+        };
         
         const getExpense = (exps, startDate, endDate) => exps.filter(e => {
             const d = new Date(e.date);
@@ -910,7 +945,7 @@ const MyPerformance = ({ subscribers, currentUser }) => {
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
     const data = useMemo(() => {
-        const subs = subscribers.filter(s => {
+        const primarySubs = subscribers.filter(s => {
             const d = new Date(s.dateOfApplication);
             const isAgent = currentUser.name === 'Jackie - Boosting' 
                 ? (s.agent === 'Jackie - Boosting' || s.agent === 'Jackie - Personal') 
@@ -919,14 +954,23 @@ const MyPerformance = ({ subscribers, currentUser }) => {
                     : s.agent === currentUser.name);
             return isAgent && d.getFullYear() === selectedYear && (d.getMonth() + 1) === selectedMonth;
         });
-        const installed = subs.filter(s => ['Installed', 'Delivered'].includes(s.status));
+        const installedPrimary = primarySubs.filter(s => ['Installed', 'Delivered'].includes(s.status));
+
+        // For commission, they might also be the processor of other sales! Let's count them too.
+        const allInvolvedSubs = subscribers.filter(s => {
+            const d = new Date(s.dateOfApplication);
+            const isParticipant = isSamePerson(s.agent, currentUser.name) || isSamePerson(s.processedBy, currentUser.name);
+            return isParticipant && d.getFullYear() === selectedYear && (d.getMonth() + 1) === selectedMonth;
+        });
+        const installedInvolved = allInvolvedSubs.filter(s => ['Installed', 'Delivered'].includes(s.status));
+
         return {
-            total: subs.length,
-            installed: installed.length,
-            pending: subs.filter(s => ['Under Review', 'For Scheduling', 'Ready for Installation', 'On the Way'].includes(s.status)).length,
-            rejected: subs.filter(s => ['Canceled', 'Rejected'].includes(s.status)).length,
-            commission: installed.reduce((acc, s) => acc + calculateCommission(s), 0),
-            conversion: subs.length ? (installed.length / subs.length) * 100 : 0
+            total: primarySubs.length,
+            installed: installedPrimary.length,
+            pending: primarySubs.filter(s => ['Under Review', 'For Scheduling', 'Ready for Installation', 'On the Way'].includes(s.status)).length,
+            rejected: primarySubs.filter(s => ['Canceled', 'Rejected'].includes(s.status)).length,
+            commission: installedInvolved.reduce((acc, s) => acc + calculateCommission(s, currentUser.name), 0),
+            conversion: primarySubs.length ? (installedPrimary.length / primarySubs.length) * 100 : 0
         };
     }, [subscribers, selectedMonth, selectedYear, currentUser]);
 
@@ -964,12 +1008,21 @@ const AgentPerformance = ({ subscribers, agents }) => {
             });
             const installed = subs.filter(s => ['Installed', 'Delivered'].includes(s.status)).length;
             const total = subs.length;
+
+            // Include all subscribers where this person is involved as Agent OR Processor to calculate their total earned commissions!
+            const allInvolvedSubs = subscribers.filter(s => {
+                const d = new Date(s.dateOfApplication);
+                const isParticipant = isSamePerson(s.agent, agent) || isSamePerson(s.processedBy, agent);
+                return isParticipant && d.getFullYear() === selectedYear && (d.getMonth() + 1) === selectedMonth;
+            });
+            const installedInvolved = allInvolvedSubs.filter(s => ['Installed', 'Delivered'].includes(s.status));
+
             return {
                 name: agent,
                 total,
                 installed,
                 conversion: total ? (installed / total) * 100 : 0,
-                commission: subs.filter(s => ['Installed', 'Delivered'].includes(s.status)).reduce((acc, s) => acc + calculateCommission(s), 0)
+                commission: installedInvolved.reduce((acc, s) => acc + calculateCommission(s, agent), 0)
             };
         }).sort((a, b) => b[sortKey] - a[sortKey]);
     }, [subscribers, agents, selectedMonth, selectedYear, sortKey]);
@@ -1014,14 +1067,15 @@ const PayoutReports = ({ subscribers, agents, currentUser, onSaveSubscriber }) =
             const d = new Date(sub.activationDate);
             const isSuccess = ['Installed', 'Delivered'].includes(sub.status);
             const isAgent = currentUser.role === 'admin' 
-                ? (selectedAgent === 'All' || sub.agent === selectedAgent) 
-                : (currentUser.name === 'Jackie - Boosting' 
-                    ? (sub.agent === 'Jackie - Boosting' || sub.agent === 'Jackie - Personal') 
-                    : (currentUser.name === 'Lyn - Boosting' 
-                        ? (sub.agent === 'Lyn - Boosting' || sub.agent === 'Lyn Personal') 
-                        : sub.agent === currentUser.name));
+                ? (selectedAgent === 'All' || isSamePerson(sub.agent, selectedAgent) || isSamePerson(sub.processedBy, selectedAgent)) 
+                : (isSamePerson(sub.agent, currentUser.name) || isSamePerson(sub.processedBy, currentUser.name));
             return isSuccess && isAgent && d.getFullYear() === selectedYear && (d.getMonth() + 1) === selectedMonth;
-        }).map(s => ({ ...s, commission: calculateCommission(s) }));
+        }).map(s => ({ 
+            ...s, 
+            commission: currentUser.role === 'admin'
+                ? (selectedAgent === 'All' ? calculateCommission(s) : calculateCommission(s, selectedAgent))
+                : calculateCommission(s, currentUser.name)
+        }));
     }, [subscribers, selectedMonth, selectedYear, selectedAgent, currentUser]);
 
     return (
