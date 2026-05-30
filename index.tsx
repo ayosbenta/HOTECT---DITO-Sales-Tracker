@@ -1,11 +1,40 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
+import { motion, AnimatePresence } from 'motion/react';
+import { 
+    LayoutDashboard, 
+    Users, 
+    TrendingUp, 
+    CreditCard, 
+    Wallet, 
+    LogOut, 
+    Menu, 
+    FileText, 
+    CheckCircle2, 
+    Truck, 
+    XCircle, 
+    AlertCircle, 
+    Users2, 
+    DollarSign, 
+    Receipt, 
+    Shield, 
+    Award, 
+    Activity, 
+    Calendar,
+    ChevronLeft,
+    ChevronRight,
+    Search,
+    Plus,
+    Tag,
+    Edit3,
+    Trash2
+} from 'lucide-react';
 
 // --- CONFIGURATION ---
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyo9W0vsdFowaCuR1M2E5SPm2T-km_XXWp--xbrCp1-J1D_T-PfaO5X0KhtvenzKlY6/exec';
 
 // --- MOCK DATA ---
-const initialAgents = ['Ryan', 'Leah - Boosting', 'Jackie - Boosting', 'Jackie - Personal'];
+const initialAgents = ['Ryan', 'Leah - Boosting', 'Jackie - Boosting', 'Jackie - Personal', 'Lyn - Boosting', 'Lyn Personal'];
 
 const residentialPlans = [
   '1490 - 500mbps'
@@ -26,6 +55,8 @@ const calculateCommission = (subscriber) => {
         case 'Leah - Boosting': return 600;
         case 'Jackie - Boosting': return 600;
         case 'Jackie - Personal': return 1200;
+        case 'Lyn - Boosting': return 600;
+        case 'Lyn Personal': return 1200;
         default: return 0;
     }
 };
@@ -53,31 +84,39 @@ const normalizeDateToYYYYMMDD = (sheetDate) => {
     return `${year}-${month}-${day}`;
 };
 
-const payoutStatusBadgeStyle = (status) => ({
-    backgroundColor: 
-        status === 'PAID' ? 'var(--accent-green)' :
-        status === 'PENDING' ? 'var(--accent-yellow)' :
-        status === 'ON REQUEST' ? 'var(--accent-blue)' :
-        '#6c757d',
-});
+const payoutStatusBadgeStyle = (status) => {
+    switch (status) {
+        case 'PAID':
+            return { backgroundColor: '#DEF7EC', color: '#03543F', border: '1px solid #BCF0DA' };
+        case 'PENDING':
+            return { backgroundColor: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' };
+        case 'ON REQUEST':
+            return { backgroundColor: '#E1EFFE', color: '#1E429F', border: '1px solid #C3DDFD' };
+        default:
+            return { backgroundColor: '#F3F4F6', color: '#374151', border: '1px solid #E5E7EB' };
+    }
+};
 
-const statusBadgeStyle = (status) => ({
-    backgroundColor:
-        ['Installed', 'APPROVED', 'Delivered'].includes(status) ? 'var(--accent-green)' :
-        ['Under Review', 'Reschedule'].includes(status) ? 'var(--accent-yellow)' :
-        ['For Scheduling', 'Ready for Installation', 'On the Way'].includes(status) ? 'var(--accent-blue)' :
-        ['Canceled', 'Rejected'].includes(status) ? 'var(--accent-red)' :
-        ['POB', 'No Signal', 'Unable to Reach'].includes(status) ? 'var(--accent-gray)' :
-        '#6c757d',
-});
+const statusBadgeStyle = (status) => {
+    if (['Installed', 'APPROVED', 'Delivered'].includes(status)) {
+        return { backgroundColor: '#DEF7EC', color: '#03543F', border: '1px solid #BCF0DA' };
+    }
+    if (['Under Review', 'Reschedule'].includes(status)) {
+        return { backgroundColor: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' };
+    }
+    if (['For Scheduling', 'Ready for Installation', 'On the Way'].includes(status)) {
+        return { backgroundColor: '#E1EFFE', color: '#1E429F', border: '1px solid #C3DDFD' };
+    }
+    if (['Canceled', 'Rejected'].includes(status)) {
+        return { backgroundColor: '#FDE8E8', color: '#9B1C1C', border: '1px solid #FCD2D2' };
+    }
+    if (['POB', 'No Signal', 'Unable to Reach'].includes(status)) {
+        return { backgroundColor: '#F3F4F6', color: '#374151', border: '1px solid #E5E7EB' };
+    }
+    return { backgroundColor: '#F3F4F6', color: '#374151', border: '1px solid #E5E7EB' };
+};
 
 // --- ICONS ---
-const Icon = ({ path, className = '' }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className} style={{ width: '1.25rem', height: '1.25rem' }}>
-        <path d={path} />
-    </svg>
-);
-
 const ICONS = {
     overview: "M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z",
     subscribers: "M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z",
@@ -89,7 +128,7 @@ const ICONS = {
     totalApplications: "M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zM16 18H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z",
     installedDelivered: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z",
     onTheWayReady: "M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zM18 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z",
-    rejectedApplications: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.59-13L12 10.59 8.41 7 7 8.41 10.59 12 7 15.59 8.41 17 12 13.41 15.59 17 17 15.59 13.41 12 17 8.41z",
+    rejectedApplications: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8.358 8 8-3.58 8-8 8zm3.59-13L12 10.59 8.41 7 7 8.41 10.59 12 7 15.59 8.41 17 12 13.41 15.59 17 17 15.59 13.41 12 17 8.41z",
     commissionRequest: "M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm-1-5h2v2h-2zm0-8h2v6h-2z",
     agentCommissions: "M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z",
     grossIncome: "M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6h-6z",
@@ -97,7 +136,40 @@ const ICONS = {
     adminCommission: "M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z",
     topAgent: "M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm7 6c-1.65 0-3-1.35-3-3V5h6v6c0 1.65-1.35 3-3 3zm7-6c0 1.3-.84 2.4-2 2.82V7h2v1z",
     netProfit: "M15 14c-2.39 0-4.47 1.21-5.73 3.05-.38-.21-.81-.35-1.27-.35-1.38 0-2.5 1.12-2.5 2.5s1.12 2.5 2.5 2.5c.81 0 1.5-.39 1.96-1H15c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5v1.28c-.21.08-.4.19-.58.32-.42-.9-1.33-1.6-2.42-1.6-1.66 0-3 1.34-3 3s1.34 3 3 3h.28c.31.89.88 1.66 1.63 2.24.47.36.99.64 1.56.84 1.48 2.08 3.96 3.42 6.78 3.42 4.97 0 9-4.03 9-9s-4.03-9-9-9-9 4.03-9 9h2c0-3.86 3.14-7 7-7s7 3.14 7 7-3.14 7-7 7z",
-    calendar: "M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z",
+    calendar: "M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"
+};
+
+const lucideIconsMap = {
+    overview: LayoutDashboard,
+    subscribers: Users,
+    performance: TrendingUp,
+    payout: CreditCard,
+    accounting: Wallet,
+    logout: LogOut,
+    menu: Menu,
+    totalApplications: FileText,
+    installedDelivered: CheckCircle2,
+    onTheWayReady: Truck,
+    rejectedApplications: XCircle,
+    commissionRequest: AlertCircle,
+    agentCommissions: Users2,
+    grossIncome: DollarSign,
+    totalExpenses: Receipt,
+    adminCommission: Shield,
+    topAgent: Award,
+    netProfit: Activity,
+    calendar: Calendar
+};
+
+const path_to_key_map = {};
+Object.entries(ICONS).forEach(([key, path]) => {
+    path_to_key_map[path] = key;
+});
+
+const Icon = ({ path, className = '' }) => {
+    const key = path_to_key_map[path];
+    const LucideComponent = lucideIconsMap[key] || LayoutDashboard;
+    return <LucideComponent className={`icon-lucide ${className}`} style={{ width: '1.25rem', height: '1.25rem' }} />;
 };
 
 // --- COMPONENTS ---
@@ -324,7 +396,9 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
 const KpiCard = ({ title, value, icon, colorClass, currency = false, valueColor = null }) => (
     <div className={`kpi-card ${colorClass}`}>
         <div className="kpi-card-header">
-            <Icon path={ICONS[icon]} className="kpi-icon" />
+            <div className="kpi-icon-container">
+                <Icon path={ICONS[icon]} className="kpi-icon" />
+            </div>
             <span className="kpi-label">{title}</span>
         </div>
         <p className="kpi-value" style={valueColor ? { color: valueColor } : {}}>
@@ -345,6 +419,7 @@ const Overview = ({ subscribers, expenses, agents, currentUser }) => {
     const visibleSubscribers = useMemo(() => {
         if (currentUser.role === 'agent') {
             if (currentUser.name === 'Jackie - Boosting') return subscribers.filter(sub => sub.agent === 'Jackie - Boosting' || sub.agent === 'Jackie - Personal');
+            if (currentUser.name === 'Lyn - Boosting') return subscribers.filter(sub => sub.agent === 'Lyn - Boosting' || sub.agent === 'Lyn Personal');
             return subscribers.filter(sub => sub.agent === currentUser.name);
         }
         return subscribers;
@@ -378,7 +453,59 @@ const Overview = ({ subscribers, expenses, agents, currentUser }) => {
         const agentSales = agents.map(name => ({ name, sales: installedSubs.filter(s => s.agent === name).length }));
         const topAgent = agentSales.reduce((prev, curr) => (prev.sales > curr.sales ? prev : curr), { name: 'N/A', sales: 0 });
 
-        return { totalApplications, totalInstalledDelivered, totalOnTheWayReady, totalRejected, commissionOnRequest, totalAgentCommissions, grossIncome, totalExpenses, totalAdminCommissions, topAgent, netProfit };
+        // --- NEW KPI METRICS FOR ADMIN ---
+        const conversionRate = totalApplications > 0 ? (totalInstalledDelivered / totalApplications) * 100 : 0;
+        const activePlanMRR = installedSubs.reduce((sum, sub) => sum + getPlanPrice(sub.plan || '1490'), 0);
+        
+        let totalDays = 0;
+        let validCount = 0;
+        installedSubs.forEach(s => {
+            if (s.dateOfApplication && s.activationDate) {
+                const appDate = new Date(s.dateOfApplication);
+                const actDate = new Date(s.activationDate);
+                if (!isNaN(appDate.getTime()) && !isNaN(actDate.getTime())) {
+                    const diffTime = actDate.getTime() - appDate.getTime();
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    if (diffDays >= 0 && diffDays < 365) {
+                        totalDays += diffDays;
+                        validCount++;
+                    }
+                }
+            }
+        });
+        const avgInstallDays = validCount > 0 ? (totalDays / validCount).toFixed(1) : 'N/A';
+        
+        const lossCount = inRangeSubs.filter(s => ['Canceled', 'Rejected'].includes(s.status)).length;
+        const lossRate = totalApplications > 0 ? (lossCount / totalApplications) * 100 : 0;
+
+        const underReviewCount = inRangeSubs.filter(s => s.status === 'Under Review').length;
+        const underReviewRate = totalApplications > 0 ? (underReviewCount / totalApplications) * 100 : 0;
+        const avgPlanRevenue = totalInstalledDelivered > 0 ? activePlanMRR / totalInstalledDelivered : 0;
+        const profitMargin = totalAdminCommissions > 0 ? (netProfit / totalAdminCommissions) * 100 : 0;
+        const activeAgentsCount = new Set(inRangeSubs.map(s => s.agent)).size;
+
+        return { 
+            totalApplications, 
+            totalInstalledDelivered, 
+            totalOnTheWayReady, 
+            totalRejected, 
+            commissionOnRequest, 
+            totalAgentCommissions, 
+            grossIncome, 
+            totalExpenses, 
+            totalAdminCommissions, 
+            topAgent, 
+            netProfit, 
+            conversionRate, 
+            activePlanMRR, 
+            avgInstallDays, 
+            lossRate,
+            underReviewCount,
+            underReviewRate,
+            avgPlanRevenue,
+            profitMargin,
+            activeAgentsCount
+        };
     }, [subscribers, expenses, agents, fromMonth, fromYear, toMonth, toYear, currentUser.role]);
 
     const agentPerformance = useMemo(() => {
@@ -403,7 +530,55 @@ const Overview = ({ subscribers, expenses, agents, currentUser }) => {
         const installedThisMonth = thisMonthApps.filter(sub => ['Installed', 'Delivered'].includes(sub.status)).length;
         const conversionRate = thisMonthApps.length > 0 ? (installedThisMonth / thisMonthApps.length) * 100 : 0;
         
-        return { totalSubscribers, totalInstalled, totalOnTheWayReady, totalRejectedCancelled, pendingPayouts, onRequestPayouts, completedPayouts, totalCompletedCommission, conversionRate };
+        // --- NEW KPI CALCULATIONS FOR AGENT ---
+        const projectedCommissions = installed.filter(sub => sub.payoutStatus !== 'PAID').reduce((sum, sub) => sum + calculateCommission(sub), 0);
+        const overallConversion = totalSubscribers > 0 ? (totalInstalled / totalSubscribers) * 100 : 0;
+        
+        let agentTotalDays = 0;
+        let agentValidCount = 0;
+        installed.forEach(s => {
+            if (s.dateOfApplication && s.activationDate) {
+                const appDate = new Date(s.dateOfApplication);
+                const actDate = new Date(s.activationDate);
+                if (!isNaN(appDate.getTime()) && !isNaN(actDate.getTime())) {
+                    const diffTime = actDate.getTime() - appDate.getTime();
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    if (diffDays >= 0 && diffDays < 365) {
+                        agentTotalDays += diffDays;
+                        agentValidCount++;
+                    }
+                }
+            }
+        });
+        const agentAvgInstallDays = agentValidCount > 0 ? (agentTotalDays / agentValidCount).toFixed(1) : 'N/A';
+        const activatedPlanMRR = installed.reduce((sum, sub) => sum + getPlanPrice(sub.plan || '1490'), 0);
+
+        // MORE KPI'S
+        const avgCommission = totalInstalled > 0 ? (totalCompletedCommission + projectedCommissions) / totalInstalled : 0;
+        const monthlyAppsCount = thisMonthApps.length;
+        const pendingVerifications = visibleSubscribers.filter(sub => sub.status === 'Under Review').length;
+        const agentLossCount = visibleSubscribers.filter(sub => ['Canceled', 'Rejected'].includes(sub.status)).length;
+        const agentLossRate = totalSubscribers > 0 ? (agentLossCount / totalSubscribers) * 100 : 0;
+
+        return { 
+            totalSubscribers, 
+            totalInstalled, 
+            totalOnTheWayReady, 
+            totalRejectedCancelled, 
+            pendingPayouts, 
+            onRequestPayouts, 
+            completedPayouts, 
+            totalCompletedCommission, 
+            conversionRate,
+            projectedCommissions,
+            overallConversion,
+            agentAvgInstallDays,
+            activatedPlanMRR,
+            avgCommission,
+            monthlyAppsCount,
+            pendingVerifications,
+            agentLossRate
+        };
     }, [visibleSubscribers, currentUser.role]);
 
     const chartData = useMemo(() => {
@@ -464,42 +639,75 @@ const Overview = ({ subscribers, expenses, agents, currentUser }) => {
     }, [visibleSubscribers, currentPage]);
 
     return (
-        <div>
-            <h1>Overview</h1>
+        <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+            <div className="dashboard-title-bar">
+                <h1>Overview Dashboard</h1>
+                <p className="dashboard-subtitle">Real-time performance analytics & sales distribution dashboard</p>
+            </div>
             {currentUser.role === 'agent' ? (
-                <div className="kpi-card-grid">
-                    <KpiCard title="Total Subscribers" value={agentPerformance.totalSubscribers} icon="subscribers" colorClass="bg-blue" />
-                    <KpiCard title="Total Installed" value={agentPerformance.totalInstalled} icon="installedDelivered" colorClass="bg-green" />
-                    <KpiCard title="On the Way / Ready" value={agentPerformance.totalOnTheWayReady} icon="onTheWayReady" colorClass="bg-blue" />
-                    <KpiCard title="Rejected / Cancelled" value={agentPerformance.totalRejectedCancelled} icon="rejectedApplications" colorClass="bg-red" />
-                    <KpiCard title="Pending Payout" value={agentPerformance.pendingPayouts} icon="commissionRequest" colorClass="bg-orange" />
-                    <KpiCard title="On Request Payout" value={agentPerformance.onRequestPayouts} icon="payout" colorClass="bg-blue" />
-                    <KpiCard title="Total Paid" value={agentPerformance.completedPayouts} icon="grossIncome" colorClass="bg-green" />
-                    <KpiCard title="Monthly Conversion" value={`${agentPerformance.conversionRate.toFixed(1)}%`} icon="performance" colorClass="bg-blue" />
-                    <KpiCard title="Total Commission (Paid)" value={agentPerformance.totalCompletedCommission} icon="adminCommission" colorClass="bg-green" currency />
+                <div>
+                    <h3 className="dashboard-section-header">Sales Performance & Conversion Funnel</h3>
+                    <div className="kpi-card-grid" style={{ marginBottom: '2.5rem' }}>
+                        <KpiCard title="Total Subscribers" value={agentPerformance.totalSubscribers} icon="subscribers" colorClass="bg-blue" />
+                        <KpiCard title="Apps Submitted This Month" value={agentPerformance.monthlyAppsCount} icon="totalApplications" colorClass="bg-blue" />
+                        <KpiCard title="Total Installed Sales" value={agentPerformance.totalInstalled} icon="installedDelivered" colorClass="bg-green" />
+                        <KpiCard title="Pending Verification" value={agentPerformance.pendingVerifications} icon="commissionRequest" colorClass="bg-orange" />
+                        <KpiCard title="Installations On The Way" value={agentPerformance.totalOnTheWayReady} icon="onTheWayReady" colorClass="bg-blue" />
+                        <KpiCard title="Rejected / Cancelled" value={agentPerformance.totalRejectedCancelled} icon="rejectedApplications" colorClass="bg-red" />
+                        <KpiCard title="Personal Loss/Cancel Rate" value={`${agentPerformance.agentLossRate.toFixed(1)}%`} icon="rejectedApplications" colorClass="bg-red" />
+                        <KpiCard title="Current Month Conversion" value={`${agentPerformance.conversionRate.toFixed(1)}%`} icon="performance" colorClass="bg-blue" />
+                        <KpiCard title="Overall Account Conv. Rate" value={`${agentPerformance.overallConversion.toFixed(1)}%`} icon="performance" colorClass="bg-blue" />
+                        <KpiCard title="Avg. Installation Speed" value={agentPerformance.agentAvgInstallDays === 'N/A' ? 'N/A' : `${agentPerformance.agentAvgInstallDays} Days`} icon="calendar" colorClass="bg-blue" />
+                    </div>
+
+                    <h3 className="dashboard-section-header">Commissions & Earnings Ledger</h3>
+                    <div className="kpi-card-grid">
+                        <KpiCard title="Pending Commission Status" value={agentPerformance.pendingPayouts} icon="commissionRequest" colorClass="bg-orange" />
+                        <KpiCard title="Request Released Status" value={agentPerformance.onRequestPayouts} icon="payout" colorClass="bg-blue" />
+                        <KpiCard title="Pending Unpaid Commission" value={agentPerformance.projectedCommissions} icon="commissionRequest" colorClass="bg-orange" currency />
+                        <KpiCard title="Number of Paid Commissions" value={agentPerformance.completedPayouts} icon="grossIncome" colorClass="bg-green" />
+                        <KpiCard title="Career Commissions (Paid)" value={agentPerformance.totalCompletedCommission} icon="adminCommission" colorClass="bg-green" currency />
+                        <KpiCard title="Mean Commission / Sale" value={agentPerformance.avgCommission} icon="adminCommission" colorClass="bg-green" currency />
+                        <KpiCard title="Active MRR Value Added" value={agentPerformance.activatedPlanMRR} icon="grossIncome" colorClass="bg-green" currency />
+                    </div>
                 </div>
             ) : (
                 <>
-                    <div className="card" style={{ marginBottom: '2rem' }}>
+                    <div className="card dashboard-filter-wrapper animate-slide-down">
                          <div className="report-filters">
                             <div className="form-group"><label>From Month</label><select className="form-control" value={fromMonth} onChange={e => setFromMonth(Number(e.target.value))}>{Array.from({length: 12}, (_, i) => <option key={i+1} value={i+1}>{new Date(0, i).toLocaleString('default', { month: 'long' })}</option>)}</select></div>
                             <div className="form-group"><label>From Year</label><input className="form-control" type="number" value={fromYear} onChange={e => setFromYear(Number(e.target.value))} /></div>
                              <div className="form-group"><label>To Month</label><select className="form-control" value={toMonth} onChange={e => setToMonth(Number(e.target.value))}>{Array.from({length: 12}, (_, i) => <option key={i+1} value={i+1}>{new Date(0, i).toLocaleString('default', { month: 'long' })}</option>)}</select></div>
                             <div className="form-group"><label>To Year</label><input className="form-control" type="number" value={toYear} onChange={e => setToYear(Number(e.target.value))} /></div>
-                        </div>
+                         </div>
                     </div>
+
+                    <h3 className="dashboard-section-header">Operational Funnel & Conversion Quality</h3>
+                    <div className="kpi-card-grid" style={{ marginBottom: '2.5rem' }}>
+                        <KpiCard title="Total Applications Received" value={adminDashboardData.totalApplications} icon="totalApplications" colorClass="bg-blue" />
+                        <KpiCard title="Total Successful Installations" value={adminDashboardData.totalInstalledDelivered} icon="installedDelivered" colorClass="bg-green" />
+                        <KpiCard title="Backlog (Under Review)" value={adminDashboardData.underReviewCount} icon="commissionRequest" colorClass="bg-orange" />
+                        <KpiCard title="In Progress Installations" value={adminDashboardData.totalOnTheWayReady} icon="onTheWayReady" colorClass="bg-blue" />
+                        <KpiCard title="Rejected Applications" value={adminDashboardData.totalRejected} icon="rejectedApplications" colorClass="bg-red" />
+                        <KpiCard title="System-wide Conversion Rate" value={`${adminDashboardData.conversionRate.toFixed(1)}%`} icon="performance" colorClass="bg-green" />
+                        <KpiCard title="Rejection / Loss Rate" value={`${adminDashboardData.lossRate.toFixed(1)}%`} icon="rejectedApplications" colorClass="bg-red" />
+                        <KpiCard title="Pending Review Ratio" value={`${adminDashboardData.underReviewRate.toFixed(1)}%`} icon="commissionRequest" colorClass="bg-orange" />
+                        <KpiCard title="Average Lead to Install Speed" value={adminDashboardData.avgInstallDays === 'N/A' ? 'N/A' : `${adminDashboardData.avgInstallDays} Days`} icon="calendar" colorClass="bg-blue" />
+                        <KpiCard title="Total Selling Agents Active" value={adminDashboardData.activeAgentsCount} icon="agentCommissions" colorClass="bg-blue" />
+                    </div>
+
+                    <h3 className="dashboard-section-header">Consolidated Financial & Profitability Ledger</h3>
                     <div className="kpi-card-grid">
-                        <KpiCard title="Total Applications" value={adminDashboardData.totalApplications} icon="totalApplications" colorClass="bg-blue" />
-                        <KpiCard title="Total Installed/Delivered" value={adminDashboardData.totalInstalledDelivered} icon="installedDelivered" colorClass="bg-blue" />
-                        <KpiCard title="On the Way / Ready" value={adminDashboardData.totalOnTheWayReady} icon="onTheWayReady" colorClass="bg-blue" />
-                        <KpiCard title="Rejected" value={adminDashboardData.totalRejected} icon="rejectedApplications" colorClass="bg-red" />
-                        <KpiCard title="Commission on Request" value={adminDashboardData.commissionOnRequest} icon="commissionRequest" colorClass="bg-orange" currency />
-                        <KpiCard title="Agent Commissions" value={adminDashboardData.totalAgentCommissions} icon="agentCommissions" colorClass="bg-orange" currency />
-                        <KpiCard title="Gross Income" value={adminDashboardData.grossIncome} icon="grossIncome" colorClass="bg-green" currency />
-                        <KpiCard title="Total Expenses" value={adminDashboardData.totalExpenses} icon="totalExpenses" colorClass="bg-red" currency />
-                        <KpiCard title="Admin Commission" value={adminDashboardData.totalAdminCommissions} icon="adminCommission" colorClass="bg-green" currency />
-                        <KpiCard title="Top Agent" value={adminDashboardData.topAgent.name} icon="topAgent" colorClass="bg-blue" />
-                        <KpiCard title="Net Profit" value={adminDashboardData.netProfit} icon="netProfit" colorClass="bg-green" currency valueColor={adminDashboardData.netProfit >= 0 ? 'white' : 'var(--accent-red)'} />
+                        <KpiCard title="Sales Volume Value (Gross)" value={adminDashboardData.grossIncome} icon="grossIncome" colorClass="bg-green" currency />
+                        <KpiCard title="Operating Expenses Debited" value={adminDashboardData.totalExpenses} icon="totalExpenses" colorClass="bg-red" currency />
+                        <KpiCard title="Unsubmitted Commissions Est." value={adminDashboardData.commissionOnRequest} icon="commissionRequest" colorClass="bg-orange" currency />
+                        <KpiCard title="Agent Claims Committed" value={adminDashboardData.totalAgentCommissions} icon="agentCommissions" colorClass="bg-orange" currency />
+                        <KpiCard title="Gross Admin Commissions" value={adminDashboardData.totalAdminCommissions} icon="adminCommission" colorClass="bg-green" currency />
+                        <KpiCard title="Net Balance (Post Expense)" value={adminDashboardData.netProfit} icon="netProfit" colorClass="bg-green" currency valueColor={adminDashboardData.netProfit >= 0 ? '#10b981' : '#ef4444'} />
+                        <KpiCard title="Admin Net Margin Rate" value={`${adminDashboardData.profitMargin.toFixed(1)}%`} icon="performance" colorClass="bg-green" />
+                        <KpiCard title="Average Active Plan MRR" value={adminDashboardData.avgPlanRevenue} icon="grossIncome" colorClass="bg-green" currency />
+                        <KpiCard title="Primary Core Performer Agent" value={adminDashboardData.topAgent.name} icon="topAgent" colorClass="bg-blue" />
+                        <KpiCard title="Total Recurring Value Created" value={adminDashboardData.activePlanMRR} icon="grossIncome" colorClass="bg-green" currency />
                     </div>
                 </>
             )}
@@ -524,7 +732,7 @@ const Overview = ({ subscribers, expenses, agents, currentUser }) => {
                 <h2>Latest Transactions</h2>
                 <div className="table-responsive-wrapper">
                     <table className="data-table">
-                        <thead><tr><th>Date</th><th>Name</th><th>App No</th><th>Sub No</th>{currentUser.role === 'admin' && <th>Agent</th>}<th>Status</th><th>Payout</th></tr></thead>
+                        <thead><tr><th>Date</th><th>Name</th><th>App No</th><th>Sub No</th>{currentUser.role === 'admin' && <><th>Agent</th><th>Processed By</th></>}<th>Status</th><th>Payout</th></tr></thead>
                         <tbody>
                             {paginatedData.items.map(sub => (
                                 <tr key={sub.id}>
@@ -532,7 +740,7 @@ const Overview = ({ subscribers, expenses, agents, currentUser }) => {
                                     <td>{sub.name}</td>
                                     <td>{sub.applicationNo}</td>
                                     <td>{sub.subscriberNo}</td>
-                                    {currentUser.role === 'admin' && <td>{sub.agent}</td>}
+                                    {currentUser.role === 'admin' && <><td>{sub.agent}</td><td>{sub.processedBy || '-'}</td></>}
                                     <td><span className="status-badge" style={statusBadgeStyle(sub.status)}>{sub.status}</span></td>
                                     <td><span className="status-badge" style={payoutStatusBadgeStyle(sub.payoutStatus || 'PENDING')}>{sub.payoutStatus || 'PENDING'}</span></td>
                                 </tr>
@@ -542,7 +750,7 @@ const Overview = ({ subscribers, expenses, agents, currentUser }) => {
                 </div>
                 <Pagination currentPage={currentPage} totalPages={paginatedData.totalPages} onPageChange={setCurrentPage} />
             </div>
-        </div>
+        </motion.div>
     );
 };
 
@@ -551,6 +759,7 @@ const SubscriberModal = ({ isOpen, onClose, onSave, subscriber, agents, currentU
         dateOfApplication: new Date().toISOString().split('T')[0],
         name: '', address: '', applicationNo: '', subscriberNo: '',
         agent: currentUser.role === 'agent' ? currentUser.name : (agents[0] || ''),
+        processedBy: 'Leah',
         status: 'Under Review', payoutStatus: 'PENDING', activationDate: '', reason: '', plan: residentialPlans[0]
     };
     const [formData, setFormData] = useState(initialFormState);
@@ -587,6 +796,16 @@ const SubscriberModal = ({ isOpen, onClose, onSave, subscriber, agents, currentU
                             {agents.map(agent => <option key={agent} value={agent}>{agent}</option>)}
                         </select>
                     </div>
+                    <div className="form-group">
+                        <label>Processed By</label>
+                        <select name="processedBy" className="form-control" value={formData.processedBy || 'Leah'} onChange={handleChange} required>
+                            <option value="Leah">Leah</option>
+                            <option value="Jacky">Jacky</option>
+                            <option value="Ryan">Ryan</option>
+                            <option value="Lyn">Lyn</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
                     <div className="form-group"><label>Status</label><select name="status" className="form-control" value={formData.status} onChange={handleChange} required>{subscriberStatuses.map(status => <option key={status} value={status}>{status}</option>)}</select></div>
                     <div className="form-group">
                         <label>Payout Status</label>
@@ -609,6 +828,7 @@ const Subscribers = ({ subscribers, onSave, onDelete, agents, currentUser }) => 
     const visibleSubscribers = useMemo(() => {
         if (currentUser.role === 'agent') {
             if (currentUser.name === 'Jackie - Boosting') return subscribers.filter(sub => sub.agent === 'Jackie - Boosting' || sub.agent === 'Jackie - Personal');
+            if (currentUser.name === 'Lyn - Boosting') return subscribers.filter(sub => sub.agent === 'Lyn - Boosting' || sub.agent === 'Lyn Personal');
             return subscribers.filter(sub => sub.agent === currentUser.name);
         }
         return subscribers;
@@ -635,7 +855,7 @@ const Subscribers = ({ subscribers, onSave, onDelete, agents, currentUser }) => 
                 </div>
                 <div className="table-responsive-wrapper">
                     <table className="data-table">
-                        <thead><tr><th>Date</th><th>Name</th><th>Address</th><th>App No</th><th>Sub No</th><th>Agent</th><th>Status</th><th>Payout</th><th>Actions</th></tr></thead>
+                        <thead><tr><th>Date</th><th>Name</th><th>Address</th><th>App No</th><th>Sub No</th><th>Agent</th><th>Processed By</th><th>Status</th><th>Payout</th><th>Actions</th></tr></thead>
                         <tbody>
                             {filteredSubscribers.map(sub => (
                                 <tr key={sub.id}>
@@ -645,6 +865,7 @@ const Subscribers = ({ subscribers, onSave, onDelete, agents, currentUser }) => 
                                     <td>{sub.applicationNo}</td>
                                     <td>{sub.subscriberNo}</td>
                                     <td>{sub.agent}</td>
+                                    <td>{sub.processedBy || '-'}</td>
                                     <td><span className="status-badge" style={statusBadgeStyle(sub.status)}>{sub.status}</span></td>
                                     <td><span className="status-badge" style={payoutStatusBadgeStyle(sub.payoutStatus || 'PENDING')}>{sub.payoutStatus || 'PENDING'}</span></td>
                                     <td>
@@ -671,7 +892,11 @@ const MyPerformance = ({ subscribers, currentUser }) => {
     const data = useMemo(() => {
         const subs = subscribers.filter(s => {
             const d = new Date(s.dateOfApplication);
-            const isAgent = currentUser.name === 'Jackie - Boosting' ? (s.agent === 'Jackie - Boosting' || s.agent === 'Jackie - Personal') : s.agent === currentUser.name;
+            const isAgent = currentUser.name === 'Jackie - Boosting' 
+                ? (s.agent === 'Jackie - Boosting' || s.agent === 'Jackie - Personal') 
+                : (currentUser.name === 'Lyn - Boosting' 
+                    ? (s.agent === 'Lyn - Boosting' || s.agent === 'Lyn Personal') 
+                    : s.agent === currentUser.name);
             return isAgent && d.getFullYear() === selectedYear && (d.getMonth() + 1) === selectedMonth;
         });
         const installed = subs.filter(s => ['Installed', 'Delivered'].includes(s.status));
@@ -768,7 +993,13 @@ const PayoutReports = ({ subscribers, agents, currentUser, onSaveSubscriber }) =
             if (!sub.activationDate) return false;
             const d = new Date(sub.activationDate);
             const isSuccess = ['Installed', 'Delivered'].includes(sub.status);
-            const isAgent = currentUser.role === 'admin' ? (selectedAgent === 'All' || sub.agent === selectedAgent) : (currentUser.name === 'Jackie - Boosting' ? (sub.agent === 'Jackie - Boosting' || sub.agent === 'Jackie - Personal') : sub.agent === currentUser.name);
+            const isAgent = currentUser.role === 'admin' 
+                ? (selectedAgent === 'All' || sub.agent === selectedAgent) 
+                : (currentUser.name === 'Jackie - Boosting' 
+                    ? (sub.agent === 'Jackie - Boosting' || sub.agent === 'Jackie - Personal') 
+                    : (currentUser.name === 'Lyn - Boosting' 
+                        ? (sub.agent === 'Lyn - Boosting' || sub.agent === 'Lyn Personal') 
+                        : sub.agent === currentUser.name));
             return isSuccess && isAgent && d.getFullYear() === selectedYear && (d.getMonth() + 1) === selectedMonth;
         }).map(s => ({ ...s, commission: calculateCommission(s) }));
     }, [subscribers, selectedMonth, selectedYear, selectedAgent, currentUser]);
@@ -788,11 +1019,11 @@ const PayoutReports = ({ subscribers, agents, currentUser, onSaveSubscriber }) =
                 </div>
                 <div className="table-responsive-wrapper">
                     <table className="data-table">
-                        <thead><tr><th>Agent</th><th>Subscriber</th><th>App No</th><th>Date</th><th>Comm</th><th>Status</th></tr></thead>
+                        <thead><tr><th>Agent</th><th>Processed By</th><th>Subscriber</th><th>App No</th><th>Date</th><th>Comm</th><th>Status</th></tr></thead>
                         <tbody>
                             {reportData.map(item => (
                                 <tr key={item.id}>
-                                    <td>{item.agent}</td><td>{item.name}</td><td>{item.applicationNo}</td><td>{formatDate(item.activationDate)}</td><td>₱{item.commission.toLocaleString()}</td>
+                                    <td>{item.agent}</td><td>{item.processedBy || '-'}</td><td>{item.name}</td><td>{item.applicationNo}</td><td>{formatDate(item.activationDate)}</td><td>₱{item.commission.toLocaleString()}</td>
                                     <td>{currentUser.role === 'admin' ? (
                                         <select className="form-control table-select" value={item.payoutStatus || 'PENDING'} onChange={(e) => onSaveSubscriber({ ...item, payoutStatus: e.target.value })}><option value="PENDING">PENDING</option><option value="ON REQUEST">ON REQUEST</option><option value="PAID">PAID</option></select>
                                     ) : <span className="status-badge" style={payoutStatusBadgeStyle(item.payoutStatus || 'PENDING')}>{item.payoutStatus || 'PENDING'}</span>}</td>
@@ -1094,7 +1325,11 @@ const App = () => {
             case 'Calendar':
                 const visibleAgents = currentUser.role === 'admin' 
                     ? agents 
-                    : (currentUser.name === 'Jackie - Boosting' ? ['Jackie - Boosting', 'Jackie - Personal'] : [currentUser.name]);
+                    : (currentUser.name === 'Jackie - Boosting' 
+                        ? ['Jackie - Boosting', 'Jackie - Personal'] 
+                        : (currentUser.name === 'Lyn - Boosting' 
+                            ? ['Lyn - Boosting', 'Lyn Personal'] 
+                            : [currentUser.name]));
                 return <CalendarView subscribers={subscribers} agents={visibleAgents} />;
             case 'My Performance': return <MyPerformance subscribers={subscribers} currentUser={currentUser} />;
             case 'Agent Performance': return <AgentPerformance subscribers={subscribers} agents={agents} />;
