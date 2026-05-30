@@ -48,7 +48,7 @@ import {
 } from 'recharts';
 
 // --- CONFIGURATION ---
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyo9W0vsdFowaCuR1M2E5SPm2T-km_XXWp--xbrCp1-J1D_T-PfaO5X0KhtvenzKlY6/exec';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyCh_0EvLV3yb797Rd2AuMMlp9SDq_t54Q153chmdjFvEsF8xc42xKyLLRTra6hWriD/exec';
 
 // --- MOCK DATA ---
 const initialAgents = ['Ryan', 'Leah - Boosting', 'Jackie - Boosting', 'Jackie - Personal', 'Lyn - Boosting', 'Lyn Personal'];

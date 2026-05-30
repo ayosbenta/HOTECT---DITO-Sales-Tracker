@@ -64,8 +64,22 @@ function readAllData() {
   
   sheets.forEach(function(sheet) {
     var rawName = sheet.getName();
-    var keyName = rawName.toLowerCase(); // converts sheet names like "Meta Ads" to key "meta ads"
-    result[keyName] = parseSheetToObjects(sheet);
+    var keyName = rawName.trim().toLowerCase(); // converts sheet names like "Meta Ads" to key "meta ads"
+    var parsed = parseSheetToObjects(sheet);
+    result[keyName] = parsed;
+    
+    // Auto-map aliases for full compatibility with React app expected state variables
+    if (keyName === "data" || keyName === "subscribers") {
+      result["subscribers"] = parsed;
+      result["data"] = parsed;
+    }
+    if (keyName === "expenses") {
+      result["expenses"] = parsed;
+    }
+    if (keyName === "meta ads" || keyName === "metaads") {
+      result["meta ads"] = parsed;
+      result["metaads"] = parsed;
+    }
   });
   
   return createJSONResponse(result);
