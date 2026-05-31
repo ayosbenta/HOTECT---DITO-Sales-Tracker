@@ -1060,6 +1060,8 @@ const PayoutReports = ({ subscribers, agents, currentUser, onSaveSubscriber }) =
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
     const [selectedAgent, setSelectedAgent] = useState(currentUser.role === 'admin' ? 'All' : currentUser.name);
+    const [isDownloading, setIsDownloading] = useState(false);
+    const [statusMsg, setStatusMsg] = useState(null);
 
     const reportData = useMemo(() => {
         return subscribers.filter(sub => {
@@ -1078,9 +1080,185 @@ const PayoutReports = ({ subscribers, agents, currentUser, onSaveSubscriber }) =
         }));
     }, [subscribers, selectedMonth, selectedYear, selectedAgent, currentUser]);
 
+    const generatePayoutTxtContent = (records) => {
+        let content = "Application No. | Agent Name | Process By | Amount\n\n";
+        
+        // 1. Individual list
+        records.forEach(rec => {
+            const appNo = rec.applicationNo || '-';
+            const agent = rec.agent || '-';
+            const processBy = rec.processedBy || '-';
+            
+            // Compute Row Amount (Personal = 1200, Boosting = 400 total)
+            const isBoosting = (rec.agent || '').toLowerCase().includes('boosting');
+            const amount = isBoosting ? 400 : 1200;
+            
+            content += `${appNo} | ${agent} | ${processBy} | PHP ${amount.toLocaleString('en-US')}\n`;
+        });
+        
+        content += "\n";
+        
+        // 2. Agent Summary
+        const agentSums = {};
+        records.forEach(rec => {
+            const agent = rec.agent || 'Unknown';
+            const isBoosting = (rec.agent || '').toLowerCase().includes('boosting');
+            const amount = isBoosting ? 400 : 1200;
+            agentSums[agent] = (agentSums[agent] || 0) + amount;
+        });
+        
+        Object.keys(agentSums).forEach(agentName => {
+            content += `${agentName} | PHP ${agentSums[agentName].toLocaleString('en-US')}\n`;
+        });
+        
+        content += "\n";
+        
+        // 3. Processor (Process By) Summary
+        const processorSums = {};
+        records.forEach(rec => {
+            const processBy = rec.processedBy || '-';
+            const isBoosting = (rec.agent || '').toLowerCase().includes('boosting');
+            const amount = isBoosting ? 400 : 1200;
+            processorSums[processBy] = (processorSums[processBy] || 0) + amount;
+        });
+        
+        Object.keys(processorSums).forEach(procName => {
+            content += `${procName} | PHP ${processorSums[procName].toLocaleString('en-US')}\n`;
+        });
+        
+        content += "\n";
+        
+        // 4. Grand Total
+        const grandTotal = records.reduce((sum, rec) => {
+            const isBoosting = (rec.agent || '').toLowerCase().includes('boosting');
+            return sum + (isBoosting ? 400 : 1200);
+        }, 0);
+        content += `Grand Total | PHP ${grandTotal.toLocaleString('en-US')}\n`;
+        
+        return content;
+    };
+
+    const handleDownloadOnRequest = async () => {
+        setIsDownloading(true);
+        setStatusMsg({ type: 'loading', text: 'Generating payout file...' });
+        try {
+            // Live data only - fetch directly from Google Sheet script URL
+            const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=readAll`);
+            if (!response.ok) {
+                throw new Error('Database connection failed.');
+            }
+            const resData = await response.json();
+            if (resData.status === 'error') {
+                throw new Error(resData.message || 'Error fetching data from database.');
+            }
+            
+            // Extract raw subscribers
+            const allSubs = resData.subscribers || [];
+            
+            // Filter using: Status = "On Request" (represented by payoutStatus = 'ON REQUEST')
+            const onRequestRecords = allSubs.filter(sub => {
+                const payoutStatus = (sub.payoutStatus || '').trim().toUpperCase();
+                return payoutStatus === 'ON REQUEST';
+            });
+            
+            if (onRequestRecords.length === 0) {
+                setStatusMsg({ type: 'error', text: 'No On Request payout records available.' });
+                return;
+            }
+            
+            // Generate content
+            const fileContent = generatePayoutTxtContent(onRequestRecords);
+            
+            // Handle Download
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const dateString = `${year}-${month}-${day}`;
+            const fileName = `Payout_Report_${dateString}.txt`;
+            
+            const blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            setStatusMsg({ type: 'success', text: 'Payout report downloaded successfully.' });
+        } catch (err) {
+            console.error('Download failed:', err);
+            setStatusMsg({ type: 'error', text: err instanceof Error ? err.message : 'Database error occurred.' });
+        } finally {
+            setIsDownloading(false);
+        }
+    };
+
     return (
         <div>
-            <div className="page-header"><h1>Payout Reports</h1><button className="btn btn-secondary no-print" onClick={() => window.print()}>Print</button></div>
+            <div className="page-header">
+                <h1>Payout Reports</h1>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <button className="btn btn-secondary no-print" onClick={() => window.print()}>Print</button>
+                    <button 
+                        className="btn btn-primary no-print" 
+                        onClick={handleDownloadOnRequest}
+                        disabled={isDownloading}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                    >
+                        {isDownloading ? 'Downloading...' : 'Download On Request Payout'}
+                    </button>
+                </div>
+            </div>
+            
+            {statusMsg && (
+                <div 
+                    className="no-print"
+                    style={{
+                        padding: '1rem',
+                        borderRadius: '0.375rem',
+                        marginBottom: '1.5rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        backgroundColor: statusMsg.type === 'success' ? '#def7ec' : statusMsg.type === 'error' ? '#fde8e8' : '#e1effe',
+                        color: statusMsg.type === 'success' ? '#03543f' : statusMsg.type === 'error' ? '#9b1c1c' : '#1e429f',
+                        border: `1px solid ${statusMsg.type === 'success' ? '#bcf0da' : statusMsg.type === 'error' ? '#f8b4b4' : '#a4cafe'}`,
+                        fontSize: '0.875rem',
+                        fontWeight: 500,
+                        animation: 'fadeIn 0.2s ease-out'
+                    }}
+                >
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        {statusMsg.type === 'loading' && (
+                            <svg className="animate-spin" style={{ width: '1.25rem', height: '1.25rem', color: 'currentColor' }} fill="none" viewBox="0 0 24 24">
+                                <circle style={{ opacity: 0.25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path style={{ opacity: 0.75 }} fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        )}
+                        <span>{statusMsg.text}</span>
+                    </span>
+                    {statusMsg.type !== 'loading' && (
+                        <button 
+                            onClick={() => setStatusMsg(null)} 
+                            style={{ 
+                                background: 'none', 
+                                border: 'none', 
+                                color: 'inherit', 
+                                cursor: 'pointer', 
+                                fontWeight: 'bold',
+                                fontSize: '1.1rem',
+                                padding: '0 0.5rem'
+                            }}
+                        >
+                            &times;
+                        </button>
+                    )}
+                </div>
+            )}
+
             <div className="card">
                 <div className="report-filters no-print">
                     <div className="form-group"><label>Month</label><select className="form-control" value={selectedMonth} onChange={e => setSelectedMonth(Number(e.target.value))}>{Array.from({length: 12}, (_, i) => <option key={i+1} value={i+1}>{new Date(0, i).toLocaleString('default', { month: 'long' })}</option>)}</select></div>
