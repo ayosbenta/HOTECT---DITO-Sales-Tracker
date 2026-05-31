@@ -83,7 +83,7 @@ const calculateCommission = (subscriber, userName = undefined) => {
     if (userName) {
         let earned = 0;
         if (isBoosting) {
-            // Boosting Sales – ₱200 for the Agent and ₱200 for the Processor
+            // Boosting Sales – PHP 200 for the Agent and PHP 200 for the Processor
             if (isSamePerson(subscriber.agent, userName)) {
                 earned += 200;
             }
@@ -91,18 +91,21 @@ const calculateCommission = (subscriber, userName = undefined) => {
                 earned += 200;
             }
         } else {
-            // Personal Sales – ₱1,200 commission (goes to Agent)
+            // Personal Sales – PHP 1,000 for Agent and PHP 200 for Processor
             if (isSamePerson(subscriber.agent, userName)) {
-                earned += 1200;
+                earned += 1000;
+            }
+            if (isSamePerson(subscriber.processedBy, userName)) {
+                earned += 200;
             }
         }
         return earned;
     } else {
         // Return total commission (all stakeholders combined) for the subscriber record
         if (isBoosting) {
-            return 400; // ₱200 plus ₱200
+            return 400; // PHP 200 plus PHP 200
         } else {
-            return 1200; // ₱1200
+            return 1200; // PHP 1000 plus PHP 200
         }
     }
 };
@@ -1081,60 +1084,73 @@ const PayoutReports = ({ subscribers, agents, currentUser, onSaveSubscriber }) =
     }, [subscribers, selectedMonth, selectedYear, selectedAgent, currentUser]);
 
     const generatePayoutTxtContent = (records) => {
-        let content = "Application No. | Agent Name | Process By | Amount\n\n";
-        
-        // 1. Individual list
+        const todayFormatted = new Date().toLocaleDateString('en-US', {
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric'
+        });
+
+        let content = "FOR PAYOUT\n";
+        content += `Date: ${todayFormatted}\n\n`;
+        content += "Applications:\n";
+
         records.forEach(rec => {
             const appNo = rec.applicationNo || '-';
             const agent = rec.agent || '-';
             const processBy = rec.processedBy || '-';
-            
-            // Compute Row Amount (Personal = 1200, Boosting = 400 total)
             const isBoosting = (rec.agent || '').toLowerCase().includes('boosting');
             const amount = isBoosting ? 400 : 1200;
-            
             content += `${appNo} | ${agent} | ${processBy} | PHP ${amount.toLocaleString('en-US')}\n`;
         });
-        
-        content += "\n";
-        
-        // 2. Agent Summary
-        const agentSums = {};
+
+        content += "\nBreakdown:\n";
+
+        const getBreakdownName = (name) => {
+            if (!name) return 'Unknown';
+            const lower = name.toLowerCase().trim();
+            if (lower.includes('ryan')) return 'Ryan';
+            if (lower.includes('leah')) return 'Leah';
+            if (lower.includes('lyn')) return 'Lyn';
+            if (lower.includes('jackie - personal')) return 'Lyn'; // Match user's expected personal mapping to Lyn
+            if (lower.includes('jacky') || lower.includes('jackie')) return 'Jacky';
+            return name.trim();
+        };
+
+        const breakdownSums = {};
+
         records.forEach(rec => {
-            const agent = rec.agent || 'Unknown';
-            const isBoosting = (rec.agent || '').toLowerCase().includes('boosting');
-            const amount = isBoosting ? 400 : 1200;
-            agentSums[agent] = (agentSums[agent] || 0) + amount;
+            // Both Personal Sales and Boosting Sales pay PHP 200 to the Processor
+            const processor = (rec.processedBy || '-').trim();
+            const cleanProcessor = getBreakdownName(processor);
+            breakdownSums[cleanProcessor] = (breakdownSums[cleanProcessor] || 0) + 200;
+
+            // Agent commission: PHP 1,000 for standard personal sale, PHP 200 for boosting style
+            const agent = (rec.agent || '-').trim();
+            const cleanAgent = getBreakdownName(agent);
+            const isBoosting = agent.toLowerCase().includes('boosting');
+            const agentCommission = isBoosting ? 200 : 1000;
+            breakdownSums[cleanAgent] = (breakdownSums[cleanAgent] || 0) + agentCommission;
         });
-        
-        Object.keys(agentSums).forEach(agentName => {
-            content += `${agentName} | PHP ${agentSums[agentName].toLocaleString('en-US')}\n`;
+
+        const sortedNames = Object.keys(breakdownSums).sort();
+        sortedNames.forEach(procName => {
+            const amount = breakdownSums[procName];
+            if (procName === 'Ryan') {
+                content += `${procName} | ${amount.toLocaleString('en-US')}\n`;
+            } else {
+                content += `${procName} | PHP ${amount.toLocaleString('en-US')}\n`;
+            }
         });
-        
-        content += "\n";
-        
-        // 3. Processor (Process By) Summary
-        const processorSums = {};
-        records.forEach(rec => {
-            const processBy = rec.processedBy || '-';
-            const isBoosting = (rec.agent || '').toLowerCase().includes('boosting');
-            const amount = isBoosting ? 400 : 1200;
-            processorSums[processBy] = (processorSums[processBy] || 0) + amount;
-        });
-        
-        Object.keys(processorSums).forEach(procName => {
-            content += `${procName} | PHP ${processorSums[procName].toLocaleString('en-US')}\n`;
-        });
-        
-        content += "\n";
-        
-        // 4. Grand Total
+
+        content += "\n---------------------------\n";
+
         const grandTotal = records.reduce((sum, rec) => {
             const isBoosting = (rec.agent || '').toLowerCase().includes('boosting');
             return sum + (isBoosting ? 400 : 1200);
         }, 0);
         content += `Grand Total | PHP ${grandTotal.toLocaleString('en-US')}\n`;
-        
+        content += "---------------------------\n";
+
         return content;
     };
 
